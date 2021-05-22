@@ -8,7 +8,7 @@ In order to be able to use this service an API authentication key is needed. To 
 
 # Building and tagging with Docker
 
-`docker build -f deployments/Dockerfile -t iot-for-tillgenglighet/ingress-trafikverket:latest .`
+`docker build -f deployments/Dockerfile -t diwise/ingress-trafikverket:latest .`
 
 # Build for local testing with Docker Compose
 

@@ -1,7 +1,7 @@
 version: '3'
 services:
   ingress-trafikverket:
-    image: iot-for-tillgenglighet/ingress-trafikverket:latest
+    image: diwise/ingress-trafikverket:latest
     build:
       context: ..
       dockerfile: ./deployments/Dockerfile

@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/iot-for-tillgenglighet/messaging-golang/pkg/messaging"
+	"github.com/diwise/messaging-golang/pkg/messaging"
 )
 
 func TestMain(m *testing.M) {
