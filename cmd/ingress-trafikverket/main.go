@@ -174,6 +174,7 @@ func main() {
 
 	serviceName := "ingress-trafikverket"
 
+	log.SetFormatter(&log.JSONFormatter{})
 	log.Infof("Starting up %s ...", serviceName)
 
 	authKeyEnvironmentVariable := "TFV_API_AUTH_KEY"
