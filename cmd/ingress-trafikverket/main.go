@@ -97,11 +97,14 @@ var TrafikverketURL string = "https://api.trafikinfo.trafikverket.se/v2/data.jso
 func getAndPublishWeatherStationStatus(authKey string, lastChangeID string, messenger MessageTopicInterface) (string, error) {
 
 	responseBody, err := getWeatherStationStatus(authKey, lastChangeID)
+	if err != nil {
+		return lastChangeID, NewError("failed to retrieve weather station status: %s", err)
+	}
 
 	answer := &weatherStationResponse{}
 	err = json.Unmarshal(responseBody, answer)
 	if err != nil {
-		return lastChangeID, NewError("Unable to marshal response", err)
+		return lastChangeID, NewError("Unable to unmarshal response", err)
 	}
 
 	for _, weatherstation := range answer.Response.Result[0].WeatherStations {
@@ -158,7 +161,11 @@ func getWeatherStationStatus(authKey string, lastChangeID string) ([]byte, error
 	)
 
 	if err != nil {
-		return []byte(lastChangeID), NewError("Failed to request weather station data from Trafikverket", err)
+		return []byte{}, NewError("Failed to request weather station data from Trafikverket", err)
+	}
+
+	if apiResponse.StatusCode != http.StatusOK {
+		return []byte{}, NewError(fmt.Sprintf("Trafikverket returned status code %d", apiResponse.StatusCode), nil)
 	}
 
 	defer apiResponse.Body.Close()
@@ -198,7 +205,6 @@ func main() {
 			switch err.(type) {
 			case *FatalTFVError:
 				log.Fatal(err)
-				break
 			default:
 				log.Error(err)
 			}
