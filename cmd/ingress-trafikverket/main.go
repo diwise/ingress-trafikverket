@@ -94,9 +94,9 @@ type weatherStationResponse struct {
 // TrafikverketURL holds the URL to be called when getting data from Trafikverket
 var TrafikverketURL string = "https://api.trafikinfo.trafikverket.se/v2/data.json"
 
-func getAndPublishWeatherStationStatus(authKey string, lastChangeID string, messenger MessageTopicInterface) (string, error) {
+func getAndPublishWeatherStationStatus(authKey, lastChangeID, trafikverketURL, contextBrokerURL string) (string, error) {
 
-	responseBody, err := getWeatherStationStatus(authKey, lastChangeID)
+	responseBody, err := getWeatherStationStatus(trafikverketURL, authKey, lastChangeID)
 	if err != nil {
 		return lastChangeID, NewError("failed to retrieve weather station status: %s", err)
 	}
@@ -108,7 +108,7 @@ func getAndPublishWeatherStationStatus(authKey string, lastChangeID string, mess
 	}
 
 	for _, weatherstation := range answer.Response.Result[0].WeatherStations {
-		err = publishWeatherStationStatus(weatherstation, messenger)
+		err = publishWeatherStationStatus(weatherstation, contextBrokerURL)
 		if err != nil {
 			return lastChangeID, NewError("Unable to marshal response", err)
 		}
@@ -117,7 +117,7 @@ func getAndPublishWeatherStationStatus(authKey string, lastChangeID string, mess
 	return answer.Response.Result[0].Info.LastChangeID, nil
 }
 
-func publishWeatherStationStatus(weatherstation weatherStation, messenger MessageTopicInterface) error {
+func publishWeatherStationStatus(weatherstation weatherStation, contextBrokerURL string) error {
 
 	position := weatherstation.Geometry.Position
 	position = position[7 : len(position)-1]
@@ -148,14 +148,41 @@ func publishWeatherStationStatus(weatherstation weatherStation, messenger Messag
 		Temp: weatherstation.Measurement.Air.Temp,
 	}
 
-	return messenger.PublishOnTopic(message)
+	err = sendTemperatureAsPatch(*message, contextBrokerURL)
+	if err != nil {
+		return NewError(fmt.Sprintf("failed to patch temperature: %s", err.Error()), nil)
+	}
+
+	return nil
 }
 
-func getWeatherStationStatus(authKey string, lastChangeID string) ([]byte, error) {
+func sendTemperatureAsPatch(temp telemetry.Temperature, contextBrokerURL string) error {
+	patchBody, err := json.Marshal(temp)
+	if err != nil {
+		return NewError("failed to marshal telemetry message", err)
+	}
+
+	req, _ := http.NewRequest("PATCH", contextBrokerURL, bytes.NewBuffer(patchBody))
+
+	client := http.Client{}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return NewError("request to context broker failed", err)
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return NewError(fmt.Sprintf("context broker returned status code %d", resp.StatusCode), nil)
+	}
+
+	return nil
+}
+
+func getWeatherStationStatus(trafikverketURL, authKey, lastChangeID string) ([]byte, error) {
 	requestBody := fmt.Sprintf("<REQUEST><LOGIN authenticationkey=\"%s\" /><QUERY objecttype=\"WeatherStation\" schemaversion=\"1\" changeid=\"%s\"><INCLUDE>Id</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE><INCLUDE>Measurement.Air.Temp</INCLUDE><INCLUDE>Measurement.MeasureTime</INCLUDE><INCLUDE>ModifiedTime</INCLUDE><INCLUDE>Name</INCLUDE><FILTER><WITHIN name=\"Geometry.SWEREF99TM\" shape=\"box\" value=\"527000 6879000, 652500 6950000\" /></FILTER></QUERY></REQUEST>", authKey, lastChangeID)
 
 	apiResponse, err := http.Post(
-		TrafikverketURL,
+		trafikverketURL,
 		"text/xml",
 		bytes.NewBufferString(requestBody),
 	)
@@ -186,21 +213,18 @@ func main() {
 
 	authKeyEnvironmentVariable := "TFV_API_AUTH_KEY"
 	authenticationKey := os.Getenv(authKeyEnvironmentVariable)
+	trafikverketURL := os.Getenv("TFV_API_URL")
+	contextBrokerURL := os.Getenv("CONTEXT_BROKER_URL")
 
 	if authenticationKey == "" {
 		log.Fatal("API authentication key missing. Please set " + authKeyEnvironmentVariable + " to a valid API key.")
 	}
 
-	config := messaging.LoadConfiguration(serviceName)
-	messenger, _ := messaging.Initialize(config)
-
-	defer messenger.Close()
-
 	lastChangeID := "0"
 	var err error = nil
 
 	for {
-		lastChangeID, err = getAndPublishWeatherStationStatus(authenticationKey, lastChangeID, messenger)
+		lastChangeID, err = getAndPublishWeatherStationStatus(authenticationKey, lastChangeID, trafikverketURL, contextBrokerURL)
 		if err != nil {
 			switch err.(type) {
 			case *FatalTFVError:
