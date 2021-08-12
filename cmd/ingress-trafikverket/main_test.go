@@ -36,10 +36,10 @@ func TestGetWeatherStationStatus(t *testing.T) {
 func TestGetWeatherStationStatusFail(t *testing.T) {
 	mockService := setupMockServiceThatReturns(http.StatusUnauthorized, "")
 
-	_, err := getWeatherStationStatus(mockService.URL+"/fails", "", "")
+	_, err := getWeatherStationStatus(mockService.URL, "", "")
 
 	if err == nil {
-		t.Error("Test failed, expected an error but got: ", err)
+		t.Error("Test failed, expected an error but got none")
 	}
 }
 
