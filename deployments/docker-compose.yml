@@ -7,6 +7,7 @@ services:
       dockerfile: ./deployments/Dockerfile
     restart: always
     environment:
-      - RABBITMQ_DISABLED=true
       - TFV_API_AUTH_KEY=$TFV_API_AUTH_KEY
+      - TFV_API_URL=$TFV_API_URL
+      - CONTEXT_BROKER_URL=$CONTEXT_BROKER_URL
   

@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -14,9 +13,10 @@ func TestMain(m *testing.M) {
 }
 
 func TestWeather(t *testing.T) {
-	mockService := setupMockService()
+	tfvMock := setupMockServiceThatReturns(http.StatusOK, responseJSON)
+	ctxBrokerMock := setupMockServiceThatReturns(http.StatusNoContent, "")
 
-	_, err := getAndPublishWeatherStationStatus("", "", mockService.URL, mockService.URL+"/patchTemps")
+	_, err := getAndPublishWeatherStationStatus("", "", tfvMock.URL, ctxBrokerMock.URL)
 
 	if err != nil {
 		t.Error("Test failed: ", err)
@@ -24,7 +24,7 @@ func TestWeather(t *testing.T) {
 }
 
 func TestGetWeatherStationStatus(t *testing.T) {
-	mockService := setupMockService()
+	mockService := setupMockServiceThatReturns(http.StatusOK, responseJSON)
 
 	_, err := getWeatherStationStatus(mockService.URL, "", "")
 
@@ -34,7 +34,7 @@ func TestGetWeatherStationStatus(t *testing.T) {
 }
 
 func TestGetWeatherStationStatusFail(t *testing.T) {
-	mockService := setupMockService()
+	mockService := setupMockServiceThatReturns(http.StatusUnauthorized, "")
 
 	_, err := getWeatherStationStatus(mockService.URL+"/fails", "", "")
 
@@ -44,7 +44,7 @@ func TestGetWeatherStationStatusFail(t *testing.T) {
 }
 
 func TestPublishWeatherStationStatus(t *testing.T) {
-	mockService := setupMockService()
+	mockService := setupMockServiceThatReturns(http.StatusNoContent, "")
 
 	weather := weatherStation{
 		ID:          "123",
@@ -53,29 +53,19 @@ func TestPublishWeatherStationStatus(t *testing.T) {
 		Measurement: measurement{Air: air{12.0}, MeasureTime: "2020-03-16T08:15:50.156Z"},
 	}
 
-	err := publishWeatherStationStatus(weather, mockService.URL+"/patchTemps")
+	err := publishWeatherStationStatus(weather, mockService.URL)
 
 	if err != nil {
 		t.Error("Test failed: ", err)
 	}
 }
 
-func setupMockService() *httptest.Server {
+func setupMockServiceThatReturns(statusCode int, body string) *httptest.Server {
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/patchTemps") {
-			w.Header().Add("Content-Type", "application/json")
-			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(""))
-		} else if strings.Contains(r.URL.Path, "/fails") {
-			w.Header().Add("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(""))
-		} else {
-			w.Header().Add("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(responseJSON))
-		}
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
+		w.Write([]byte(body))
 	}))
 }
 
