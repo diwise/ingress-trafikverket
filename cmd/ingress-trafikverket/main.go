@@ -172,14 +172,9 @@ func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.Infof("Starting up %s ...", serviceName)
 
-	authKeyEnvironmentVariable := "TFV_API_AUTH_KEY"
-	authenticationKey := os.Getenv(authKeyEnvironmentVariable)
-	trafikverketURL := os.Getenv("TFV_API_URL")
-	contextBrokerURL := os.Getenv("CONTEXT_BROKER_URL")
-
-	if authenticationKey == "" {
-		log.Fatal("API authentication key missing. Please set " + authKeyEnvironmentVariable + " to a valid API key.")
-	}
+	authenticationKey := getEnvironmentVariableOrDie("TFV_API_AUTH_KEY", "API Authentication Key")
+	trafikverketURL := getEnvironmentVariableOrDie("TFV_API_URL", "API URL")
+	contextBrokerURL := getEnvironmentVariableOrDie("CONTEXT_BROKER_URL", "Context Broker URL")
 
 	lastChangeID := "0"
 	var err error = nil
@@ -196,4 +191,12 @@ func main() {
 		}
 		time.Sleep(30 * time.Second)
 	}
+}
+
+func getEnvironmentVariableOrDie(envVar, description string) string {
+	value := os.Getenv(envVar)
+	if value == "" {
+		log.Fatalf("Please set %s to a valid %s.", envVar, description)
+	}
+	return value
 }
