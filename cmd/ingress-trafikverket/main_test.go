@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
+	"github.com/rs/zerolog"
 )
 
 func TestMain(m *testing.M) {
@@ -19,7 +20,7 @@ func TestWeather(t *testing.T) {
 	tfvMock := setupMockServiceThatReturns(http.StatusOK, responseJSON)
 	ctxBrokerMock := setupMockServiceThatReturns(http.StatusNoContent, "")
 
-	_, err := getAndPublishWeatherStationStatus("", "", tfvMock.URL, ctxBrokerMock.URL)
+	_, err := getAndPublishWeatherStationStatus(zerolog.Logger{}, "", "", tfvMock.URL, ctxBrokerMock.URL)
 	is.NoErr(err)
 }
 
@@ -27,7 +28,7 @@ func TestGetWeatherStationStatus(t *testing.T) {
 	is := is.New(t)
 	mockService := setupMockServiceThatReturns(http.StatusOK, responseJSON)
 
-	_, err := getWeatherStationStatus(mockService.URL, "", "")
+	_, err := getWeatherStationStatus(zerolog.Logger{}, mockService.URL, "", "")
 
 	is.NoErr(err)
 }
@@ -36,7 +37,7 @@ func TestGetWeatherStationStatusFail(t *testing.T) {
 	is := is.New(t)
 	mockService := setupMockServiceThatReturns(http.StatusUnauthorized, "")
 
-	_, err := getWeatherStationStatus(mockService.URL, "", "")
+	_, err := getWeatherStationStatus(zerolog.Logger{}, mockService.URL, "", "")
 
 	is.True(err != nil) // Test failed, expected an error but got none
 }
