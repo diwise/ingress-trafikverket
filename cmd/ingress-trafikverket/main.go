@@ -7,9 +7,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
+	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -99,6 +102,7 @@ func getAndPublishWeatherStationStatus(authKey, lastChangeID, trafikverketURL, c
 		if err != nil {
 			log.Errorf("unable to publish data for weatherstation %s: %s", weatherstation.ID, err.Error())
 		}
+		log.Infof("successfully sent patch for %s to context broker", weatherstation.ID)
 	}
 
 	return answer.Response.Result[0].Info.LastChangeID, nil
@@ -106,15 +110,16 @@ func getAndPublishWeatherStationStatus(authKey, lastChangeID, trafikverketURL, c
 
 func publishWeatherStationStatus(weatherstation weatherStation, contextBrokerURL string) error {
 
-	/*position := weatherstation.Geometry.Position
+	position := weatherstation.Geometry.Position
 	position = position[7 : len(position)-1]
 
 	Longitude := strings.Split(position, " ")[0]
 	newLong, _ := strconv.ParseFloat(Longitude, 32)
 	Latitude := strings.Split(position, " ")[1]
-	newLat, _ := strconv.ParseFloat(Latitude, 32)*/
+	newLat, _ := strconv.ParseFloat(Latitude, 32)
 
 	device := fiware.NewDevice("se:trafikverket:temp:"+weatherstation.ID, fmt.Sprintf("t=%.1f", weatherstation.Measurement.Air.Temp))
+	device.Location = geojson.CreateGeoJSONPropertyFromWGS84(newLong, newLat)
 
 	patchBody, err := json.Marshal(device)
 	if err != nil {

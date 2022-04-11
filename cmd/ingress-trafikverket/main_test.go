@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/matryer/is"
 )
 
 func TestMain(m *testing.M) {
@@ -13,37 +15,34 @@ func TestMain(m *testing.M) {
 }
 
 func TestWeather(t *testing.T) {
+	is := is.New(t)
 	tfvMock := setupMockServiceThatReturns(http.StatusOK, responseJSON)
 	ctxBrokerMock := setupMockServiceThatReturns(http.StatusNoContent, "")
 
 	_, err := getAndPublishWeatherStationStatus("", "", tfvMock.URL, ctxBrokerMock.URL)
-
-	if err != nil {
-		t.Error("Test failed: ", err)
-	}
+	is.NoErr(err)
 }
 
 func TestGetWeatherStationStatus(t *testing.T) {
+	is := is.New(t)
 	mockService := setupMockServiceThatReturns(http.StatusOK, responseJSON)
 
 	_, err := getWeatherStationStatus(mockService.URL, "", "")
 
-	if err != nil {
-		t.Error("Test failed: ", err)
-	}
+	is.NoErr(err)
 }
 
 func TestGetWeatherStationStatusFail(t *testing.T) {
+	is := is.New(t)
 	mockService := setupMockServiceThatReturns(http.StatusUnauthorized, "")
 
 	_, err := getWeatherStationStatus(mockService.URL, "", "")
 
-	if err == nil {
-		t.Error("Test failed, expected an error but got none")
-	}
+	is.True(err != nil) // Test failed, expected an error but got none
 }
 
 func TestPublishWeatherStationStatus(t *testing.T) {
+	is := is.New(t)
 	mockService := setupMockServiceThatReturns(http.StatusNoContent, "")
 
 	weather := weatherStation{
@@ -55,9 +54,7 @@ func TestPublishWeatherStationStatus(t *testing.T) {
 
 	err := publishWeatherStationStatus(weather, mockService.URL)
 
-	if err != nil {
-		t.Error("Test failed: ", err)
-	}
+	is.NoErr(err)
 }
 
 func setupMockServiceThatReturns(statusCode int, body string) *httptest.Server {
