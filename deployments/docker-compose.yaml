@@ -7,7 +7,16 @@ services:
       dockerfile: ./deployments/Dockerfile
     restart: always
     environment:
-      - TFV_API_AUTH_KEY=$TFV_API_AUTH_KEY
-      - TFV_API_URL=$TFV_API_URL
-      - CONTEXT_BROKER_URL=$CONTEXT_BROKER_URL
+      TFV_API_AUTH_KEY: $TFV_API_AUTH_KEY
+      TFV_API_URL: $TFV_API_URL
+      CONTEXT_BROKER_URL: $CONTEXT_BROKER_URL
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://otel-collector:4318'
   
+  otel-collector:
+    image: 'otel/opentelemetry-collector:0.48.0'
+    command: '--config /etc/otel-config.yaml'
+    volumes:
+      - ./configs/otel-config.yaml:/etc/otel-config.yaml
+    restart: always
+    ports:
+      - '4318' 

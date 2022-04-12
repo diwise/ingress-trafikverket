@@ -8,6 +8,7 @@ import (
 
 	"github.com/matryer/is"
 	"github.com/rs/zerolog"
+	"golang.org/x/net/context"
 )
 
 func TestMain(m *testing.M) {
@@ -20,7 +21,7 @@ func TestWeather(t *testing.T) {
 	tfvMock := setupMockServiceThatReturns(http.StatusOK, responseJSON)
 	ctxBrokerMock := setupMockServiceThatReturns(http.StatusNoContent, "")
 
-	_, err := getAndPublishWeatherStationStatus(zerolog.Logger{}, "", "", tfvMock.URL, ctxBrokerMock.URL)
+	_, err := getAndPublishWeatherStationStatus(context.Background(), zerolog.Logger{}, "", "", tfvMock.URL, ctxBrokerMock.URL)
 	is.NoErr(err)
 }
 
@@ -28,7 +29,7 @@ func TestGetWeatherStationStatus(t *testing.T) {
 	is := is.New(t)
 	mockService := setupMockServiceThatReturns(http.StatusOK, responseJSON)
 
-	_, err := getWeatherStationStatus(zerolog.Logger{}, mockService.URL, "", "")
+	_, err := getWeatherStationStatus(context.Background(), mockService.URL, "", "")
 
 	is.NoErr(err)
 }
@@ -37,7 +38,7 @@ func TestGetWeatherStationStatusFail(t *testing.T) {
 	is := is.New(t)
 	mockService := setupMockServiceThatReturns(http.StatusUnauthorized, "")
 
-	_, err := getWeatherStationStatus(zerolog.Logger{}, mockService.URL, "", "")
+	_, err := getWeatherStationStatus(context.Background(), mockService.URL, "", "")
 
 	is.True(err != nil) // Test failed, expected an error but got none
 }
@@ -53,7 +54,7 @@ func TestPublishWeatherStationStatus(t *testing.T) {
 		Measurement: measurement{Air: air{12.0}, MeasureTime: "2020-03-16T08:15:50.156Z"},
 	}
 
-	err := publishWeatherStationStatus(weather, mockService.URL)
+	err := publishWeatherStationStatus(context.Background(), weather, mockService.URL)
 
 	is.NoErr(err)
 }
