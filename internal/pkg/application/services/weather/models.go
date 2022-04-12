@@ -1,4 +1,4 @@
-package services
+package weathersvc
 
 type geometry struct {
 	Position string `json:"WGS84"`
