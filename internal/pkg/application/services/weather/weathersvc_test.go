@@ -11,36 +11,31 @@ import (
 )
 
 func TestWeather(t *testing.T) {
-	is := is.New(t)
-	tfvMock := setupMockServiceThatReturns(http.StatusOK, responseJSON)
-	ctxBrokerMock := setupMockServiceThatReturns(http.StatusNoContent, "")
-	ws := NewWeatherService()
+	is, ws := setupMockWeatherService(t, http.StatusOK, responseJSON, http.StatusNoContent, "")
 
-	_, err := ws.Start(context.Background(), zerolog.Logger{}, "", "", tfvMock.URL, ctxBrokerMock.URL)
+	_, err := ws.getAndPublishWeatherStations(context.Background(), "")
+
 	is.NoErr(err)
 }
 
 func TestGetWeatherStationStatus(t *testing.T) {
-	is := is.New(t)
-	mockService := setupMockServiceThatReturns(http.StatusOK, responseJSON)
+	is, ws := setupMockWeatherService(t, http.StatusOK, responseJSON, 0, "")
 
-	_, err := getWeatherStationStatus(context.Background(), mockService.URL, "", "")
+	_, err := ws.getWeatherStationStatus(context.Background(), "")
 
 	is.NoErr(err)
 }
 
 func TestGetWeatherStationStatusFail(t *testing.T) {
-	is := is.New(t)
-	mockService := setupMockServiceThatReturns(http.StatusUnauthorized, "")
+	is, ws := setupMockWeatherService(t, http.StatusUnauthorized, "", 0, "")
 
-	_, err := getWeatherStationStatus(context.Background(), mockService.URL, "", "")
+	_, err := ws.getWeatherStationStatus(context.Background(), "")
 
 	is.True(err != nil) // Test failed, expected an error but got none
 }
 
 func TestPublishWeatherStationStatus(t *testing.T) {
-	is := is.New(t)
-	mockService := setupMockServiceThatReturns(http.StatusNoContent, "")
+	is, ws := setupMockWeatherService(t, 0, "", http.StatusNoContent, "")
 
 	weather := weatherStation{
 		ID:          "123",
@@ -49,9 +44,18 @@ func TestPublishWeatherStationStatus(t *testing.T) {
 		Measurement: measurement{Air: air{12.0}, MeasureTime: "2020-03-16T08:15:50.156Z"},
 	}
 
-	err := publishWeatherStationStatus(context.Background(), weather, mockService.URL)
+	err := ws.publishWeatherStationStatus(context.Background(), weather)
 
 	is.NoErr(err)
+}
+
+func setupMockWeatherService(t *testing.T, tfvStatusCode int, tfvBody string, contextBrokerCode int, contextBrokerBody string) (*is.I, WeatherService) {
+	is := is.New(t)
+	tfvMock := setupMockServiceThatReturns(tfvStatusCode, responseJSON)
+	ctxBrokerMock := setupMockServiceThatReturns(contextBrokerCode, contextBrokerBody)
+	ws := NewWeatherService(zerolog.Logger{}, "", tfvMock.URL, ctxBrokerMock.URL)
+
+	return is, ws
 }
 
 func setupMockServiceThatReturns(statusCode int, body string) *httptest.Server {

@@ -15,7 +15,7 @@ import (
 
 var tracer = otel.Tracer("tfv-weatherstation-client")
 
-func getWeatherStationStatus(ctx context.Context, trafikverketURL, authKey, lastChangeID string) ([]byte, error) {
+func (ws *ws) getWeatherStationStatus(ctx context.Context, lastChangeID string) ([]byte, error) {
 	var err error
 	ctx, span := tracer.Start(ctx, "get-weatherstations")
 	defer func() {
@@ -31,9 +31,9 @@ func getWeatherStationStatus(ctx context.Context, trafikverketURL, authKey, last
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
-	requestBody := fmt.Sprintf("<REQUEST><LOGIN authenticationkey=\"%s\" /><QUERY objecttype=\"WeatherStation\" schemaversion=\"1\" changeid=\"%s\"><INCLUDE>Id</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE><INCLUDE>Measurement.Air.Temp</INCLUDE><INCLUDE>Measurement.MeasureTime</INCLUDE><INCLUDE>ModifiedTime</INCLUDE><INCLUDE>Name</INCLUDE><FILTER><WITHIN name=\"Geometry.SWEREF99TM\" shape=\"box\" value=\"527000 6879000, 652500 6950000\" /></FILTER></QUERY></REQUEST>", authKey, lastChangeID)
+	requestBody := fmt.Sprintf("<REQUEST><LOGIN authenticationkey=\"%s\" /><QUERY objecttype=\"WeatherStation\" schemaversion=\"1\" changeid=\"%s\"><INCLUDE>Id</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE><INCLUDE>Measurement.Air.Temp</INCLUDE><INCLUDE>Measurement.MeasureTime</INCLUDE><INCLUDE>ModifiedTime</INCLUDE><INCLUDE>Name</INCLUDE><FILTER><WITHIN name=\"Geometry.SWEREF99TM\" shape=\"box\" value=\"527000 6879000, 652500 6950000\" /></FILTER></QUERY></REQUEST>", ws.authenticationKey, lastChangeID)
 
-	apiReq, err := http.NewRequestWithContext(ctx, http.MethodPost, trafikverketURL, bytes.NewBufferString(requestBody))
+	apiReq, err := http.NewRequestWithContext(ctx, http.MethodPost, ws.trafikverketURL, bytes.NewBufferString(requestBody))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create http request")
 		return []byte{}, err

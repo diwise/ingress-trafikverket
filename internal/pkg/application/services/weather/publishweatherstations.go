@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-func publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation, contextBrokerURL string) error {
+func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error {
 
 	position := weatherstation.Geometry.Position
 	position = position[7 : len(position)-1]
@@ -44,7 +44,7 @@ func publishWeatherStationStatus(ctx context.Context, weatherstation weatherStat
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
-	url := fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs/", contextBrokerURL, device.ID)
+	url := fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs/", ws.contextBrokerURL, device.ID)
 
 	req, _ := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(patchBody))
 

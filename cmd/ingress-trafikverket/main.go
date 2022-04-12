@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"runtime/debug"
-	"time"
 
 	svc "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/weather"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
@@ -30,17 +29,9 @@ func main() {
 	trafikverketURL := getEnvironmentVariableOrDie(logger, "TFV_API_URL", "API URL")
 	contextBrokerURL := getEnvironmentVariableOrDie(logger, "CONTEXT_BROKER_URL", "Context Broker URL")
 
-	lastChangeID := "0"
+	ws := svc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
+	ws.Start(ctx)
 
-	ws := svc.NewWeatherService()
-
-	for {
-		lastChangeID, err = ws.Start(ctx, logger, authenticationKey, lastChangeID, trafikverketURL, contextBrokerURL)
-		if err != nil {
-			logger.Error().Msg(err.Error())
-		}
-		time.Sleep(30 * time.Second)
-	}
 }
 
 func version() string {
@@ -67,7 +58,6 @@ func getEnvironmentVariableOrDie(log zerolog.Logger, envVar, description string)
 	value := os.Getenv(envVar)
 	if value == "" {
 		log.Fatal().Msgf("Please set %s to a valid %s.", envVar, description)
-
 	}
 	return value
 }
