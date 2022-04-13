@@ -32,7 +32,7 @@ func main() {
 	ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
 	go ws.Start(ctx)*/
 
-	ts := trafficsvc.NewTrafficService(authenticationKey, trafikverketURL)
+	ts := trafficsvc.NewTrafficService(logger, authenticationKey, trafikverketURL)
 	ts.Start(ctx)
 
 }
