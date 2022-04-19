@@ -1,23 +1,19 @@
 package trafficsvc
 
 import (
-	"bytes"
 	"context"
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"net/http"
+	"encoding/json"
 	"time"
 
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
 )
 
 type TrafficService interface {
 	Start(ctx context.Context) error
-	getTrafficInformation(ctx context.Context) ([]byte, error)
+	getTrafficInformationFromTFV(ctx context.Context) ([]byte, error)
+	getTrafficInformationFromSDL(ctx context.Context) ([]byte, error)
+	sendToContextBroker(resp []byte) error
 }
 
 type ts struct {
@@ -36,69 +32,44 @@ func NewTrafficService(log zerolog.Logger, authKey, tfvURL string) TrafficServic
 
 func (ts *ts) Start(ctx context.Context) error {
 	for {
-		_, err := ts.getTrafficInformation(ctx)
+		resp, err := ts.getTrafficInformationFromTFV(ctx)
 		if err != nil {
 			ts.log.Error().Msg(err.Error())
 			return err
 		}
 
+		err = ts.sendToContextBroker(resp)
+		if err != nil {
+			ts.log.Error().Msg(err.Error())
+			return err
+		}
+
+		/*_, err = ts.getTrafficInformationFromSDL(ctx)
+		if err != nil {
+			ts.log.Error().Msg(err.Error())
+			return err
+		}*/
+
 		time.Sleep(30 * time.Second)
 	}
 }
 
-var tracer = otel.Tracer("tfv-trafficinfo-client")
-
-func (ts *ts) getTrafficInformation(ctx context.Context) ([]byte, error) {
-	var err error
-	ctx, span := tracer.Start(ctx, "get-trafficinformation")
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-		}
-		span.End()
-	}()
-
-	log := logging.GetLoggerFromContext(ctx)
-
-	httpClient := http.Client{
-		Transport: otelhttp.NewTransport(http.DefaultTransport),
+func (ts *ts) sendToContextBroker(resp []byte) error {
+	if resp == nil {
+		ts.log.Info().Msg("no new incidents to send to context broker")
+		return nil
 	}
 
-	requestBody := fmt.Sprintf(`<REQUEST>
-		<LOGIN authenticationkey="%s" />
-		<QUERY objecttype="Situation" schemaversion="1.2">
-			<FILTER>
-					<EQ name="Deviation.MessageType" value="Olycka" />
-					<EQ name="Deviation.CountyNo" value="2281" />
-			</FILTER>
-			<INCLUDE>Deviation.Id</INCLUDE>
-			<INCLUDE>Deviation.Header</INCLUDE>
-			<INCLUDE>Deviation.IconId</INCLUDE>
-			<INCLUDE>Deviation.Geometry.WGS84</INCLUDE>
-		</QUERY>
-	</REQUEST>`, ts.authKey)
+	tfvResp := tfvResponse{}
 
-	apiReq, err := http.NewRequestWithContext(ctx, http.MethodPost, ts.tfvURL, bytes.NewBufferString(requestBody))
+	err := json.Unmarshal(resp, &tfvResp)
 	if err != nil {
-		return nil, err
-	}
-	apiReq.Header.Set("Content-Type", "text/xml")
-
-	apiResponse, err := httpClient.Do(apiReq)
-	if err != nil {
-		log.Error().Msgf("failed to retrieve traffic information")
-		return nil, err
-	}
-	if apiResponse.StatusCode != http.StatusOK {
-		log.Error().Msgf("failed to retrieve traffic information, expected status code %d, but got %d", http.StatusOK, apiResponse.StatusCode)
-		return []byte{}, errors.New("")
+		return err
 	}
 
-	defer apiResponse.Body.Close()
+	//response should be unmartialed to tfvResponse, then mapped into new RoadAccident, then forwarded to context broker.
+	fiware.NewRoadAccident(tfvResp.Response.Result[0].Situation[0].Deviation[0].Id)
+	//find out how to determine that a situation has been resolved, and subsequently patch that information to the context broker
 
-	responseBody, err := ioutil.ReadAll(apiResponse.Body)
-
-	log.Info().Msgf("received response: " + string(responseBody))
-
-	return responseBody, err
+	return err
 }
