@@ -12,7 +12,6 @@ import (
 type TrafficService interface {
 	Start(ctx context.Context) error
 	getTrafficInformationFromTFV(ctx context.Context) ([]byte, error)
-	getTrafficInformationFromSDL(ctx context.Context) ([]byte, error)
 	sendToContextBroker(resp []byte) error
 }
 
@@ -43,12 +42,6 @@ func (ts *ts) Start(ctx context.Context) error {
 			ts.log.Error().Msg(err.Error())
 			return err
 		}
-
-		/*_, err = ts.getTrafficInformationFromSDL(ctx)
-		if err != nil {
-			ts.log.Error().Msg(err.Error())
-			return err
-		}*/
 
 		time.Sleep(30 * time.Second)
 	}
