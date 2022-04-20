@@ -20,7 +20,7 @@ func TestTrafficFromTFV(t *testing.T) {
 func setupMockTrafficService(t *testing.T, statusCode int, body string) (*is.I, TrafficService) {
 	is := is.New(t)
 	svcMock := setupMockServiceThatReturns(statusCode, body)
-	ts := NewTrafficService(zerolog.Logger{}, "", svcMock.URL)
+	ts := NewTrafficService(zerolog.Logger{}, "", svcMock.URL, "")
 
 	return is, ts
 }

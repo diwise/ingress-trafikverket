@@ -16,16 +16,18 @@ type TrafficService interface {
 }
 
 type ts struct {
-	log     zerolog.Logger
-	authKey string
-	tfvURL  string
+	log              zerolog.Logger
+	authKey          string
+	tfvURL           string
+	contextBrokerURL string
 }
 
-func NewTrafficService(log zerolog.Logger, authKey, tfvURL string) TrafficService {
+func NewTrafficService(log zerolog.Logger, authKey, tfvURL, contextBrokerURL string) TrafficService {
 	return &ts{
-		log:     log,
-		authKey: authKey,
-		tfvURL:  tfvURL,
+		log:              log,
+		authKey:          authKey,
+		tfvURL:           tfvURL,
+		contextBrokerURL: contextBrokerURL,
 	}
 }
 
