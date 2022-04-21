@@ -15,7 +15,7 @@ import (
 
 var tfvtracer = otel.Tracer("tfv-trafficinfo-client")
 
-func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context) ([]byte, error) {
+func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) ([]byte, error) {
 	var err error
 	ctx, span := tfvtracer.Start(ctx, "get-tfv-traffic-information")
 	defer func() {
@@ -33,10 +33,9 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context) ([]byte, error) {
 
 	requestBody := fmt.Sprintf(`<REQUEST>
 	<LOGIN authenticationkey="%s" />
-	<QUERY objecttype="Situation" schemaversion="1.2">
+	<QUERY objecttype="Situation" schemaversion="1.2" changeid="%s">
 		  <FILTER>
-		  		<EQ name="Deviation.CountyNo" value="2281" />
-				<EQ name="Deviation.MessageType" value="Trafikmeddelande,Olycka" />
+				<EQ name="Deviation.MessageType" value="Olycka" />
 		  </FILTER>
 		  <INCLUDE>Deviation.Id</INCLUDE>
 		  <INCLUDE>Deviation.StartTime</INCLUDE>
@@ -45,7 +44,7 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context) ([]byte, error) {
 		  <INCLUDE>Deviation.IconId</INCLUDE>
 		  <INCLUDE>Deviation.Geometry.WGS84</INCLUDE>
 	</QUERY>
-</REQUEST>`, ts.authKey)
+</REQUEST>`, ts.authKey, lastChangeID)
 
 	apiReq, err := http.NewRequestWithContext(ctx, http.MethodPost, ts.tfvURL, bytes.NewBufferString(requestBody))
 	if err != nil {

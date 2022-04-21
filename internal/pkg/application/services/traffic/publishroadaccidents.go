@@ -16,44 +16,33 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-func (ts *ts) publishRoadAccidentsToContextBroker(resp []byte, ctx context.Context) error {
+func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDeviation) error {
 	httpClient := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
-	if resp == nil {
-		ts.log.Info().Msg("no new incidents to send to context broker")
-		return nil
+	ra := fiware.NewRoadAccident(dev.Id)
+	ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(dev.StartTime)
+	if dev.Geometry.WGS84 != "" {
+		ra.Location = getLocationFromString(dev.Geometry.WGS84)
 	}
 
-	tfvResp := tfvResponse{}
+	//probably add checks to see if a property is empty
 
-	err := json.Unmarshal(resp, &tfvResp)
+	requestBody, err := json.Marshal(ra)
 	if err != nil {
 		return err
 	}
 
-	for _, dev := range tfvResp.Response.Result[0].Situation[0].Deviation {
-		ra := fiware.NewRoadAccident(dev.Id)
-		ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(dev.StartTime)
-		ra.Location = getLocationFromString(dev.Geometry.WGS84)
-		//probably add checks to see if a property is empty
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, ts.contextBrokerURL, bytes.NewBuffer(requestBody))
 
-		requestBody, err := json.Marshal(ra)
-		if err != nil {
-			return err
-		}
-
-		req, _ := http.NewRequestWithContext(ctx, http.MethodPost, ts.contextBrokerURL, bytes.NewBuffer(requestBody))
-
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != http.StatusCreated {
-			log.Error().Msgf("failed to send RoadAccident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
-			return errors.New("")
-		}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusCreated {
+		log.Error().Msgf("failed to send RoadAccident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
+		return errors.New("")
 	}
 
 	return err

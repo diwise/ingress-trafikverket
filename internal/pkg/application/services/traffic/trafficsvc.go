@@ -2,6 +2,7 @@ package trafficsvc
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -9,8 +10,9 @@ import (
 
 type TrafficService interface {
 	Start(ctx context.Context) error
-	getRoadAccidentsFromTFV(ctx context.Context) ([]byte, error)
-	publishRoadAccidentsToContextBroker(resp []byte, ctx context.Context) error
+	getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error)
+	getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) ([]byte, error)
+	publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDeviation) error
 }
 
 type ts struct {
@@ -30,14 +32,11 @@ func NewTrafficService(log zerolog.Logger, authKey, tfvURL, contextBrokerURL str
 }
 
 func (ts *ts) Start(ctx context.Context) error {
-	for {
-		resp, err := ts.getRoadAccidentsFromTFV(ctx)
-		if err != nil {
-			ts.log.Error().Msg(err.Error())
-			return err
-		}
+	var err error
+	lastChangeID := "0"
 
-		err = ts.publishRoadAccidentsToContextBroker(resp, ctx)
+	for {
+		lastChangeID, err = ts.getAndPublishRoadAccidents(ctx, lastChangeID)
 		if err != nil {
 			ts.log.Error().Msg(err.Error())
 			return err
@@ -45,4 +44,29 @@ func (ts *ts) Start(ctx context.Context) error {
 
 		time.Sleep(30 * time.Second)
 	}
+}
+
+func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error) {
+	resp, err := ts.getRoadAccidentsFromTFV(ctx, lastChangeID)
+	if err != nil {
+		return lastChangeID, err
+	}
+
+	tfvResp := &tfvResponse{}
+	err = json.Unmarshal(resp, tfvResp)
+	if err != nil {
+		return lastChangeID, err
+	}
+
+	for _, sitch := range tfvResp.Response.Result[0].Situation {
+		for _, dev := range sitch.Deviation {
+			err = ts.publishRoadAccidentsToContextBroker(ctx, dev)
+			if err != nil {
+				return lastChangeID, err
+			}
+		}
+
+	}
+
+	return lastChangeID, err
 }

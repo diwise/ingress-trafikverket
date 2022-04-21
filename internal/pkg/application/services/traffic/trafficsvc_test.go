@@ -13,14 +13,16 @@ import (
 func TestTrafficFromTFV(t *testing.T) {
 	is, ts := setupMockTrafficService(t, http.StatusOK, tfvResponseJSON)
 
-	_, err := ts.getRoadAccidentsFromTFV(context.Background())
+	_, err := ts.getRoadAccidentsFromTFV(context.Background(), "")
 	is.NoErr(err)
 }
 
 func TestXxx(t *testing.T) {
 	is, ts := setupMockTrafficService(t, http.StatusCreated, "")
 
-	err := ts.publishRoadAccidentsToContextBroker([]byte(tfvResponseJSON), context.Background())
+	dev := tfvDeviation{}
+
+	err := ts.publishRoadAccidentsToContextBroker(context.Background(), dev)
 	is.NoErr(err)
 }
 
