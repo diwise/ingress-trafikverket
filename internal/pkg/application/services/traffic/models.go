@@ -6,17 +6,18 @@ type tfvGeometry struct {
 
 type tfvDeviation struct {
 	Id        string      `json:"Id"`
-	Header    string      `json:"Header"`
 	IconId    string      `json:"IconId"`
 	Geometry  tfvGeometry `json:"Geometry"`
 	StartTime string      `json:"StartTime"`
 	EndTime   string      `json:"EndTime"`
+	Message   string      `json:"Message"`
 }
 
 type tfvResponse struct {
 	Response struct {
 		Result []struct {
 			Situation []struct {
+				Deleted   bool           `json:"Deleted"`
 				Deviation []tfvDeviation `json:"Deviation"`
 			} `json:"Situation"`
 			Info struct {

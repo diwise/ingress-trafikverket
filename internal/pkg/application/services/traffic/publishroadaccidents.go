@@ -22,12 +22,15 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 	}
 
 	ra := fiware.NewRoadAccident(dev.Id)
-	ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(dev.StartTime)
+	if dev.StartTime != "" {
+		ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(dev.StartTime)
+	}
 	if dev.Geometry.WGS84 != "" {
 		ra.Location = getLocationFromString(dev.Geometry.WGS84)
 	}
 
-	//probably add checks to see if a property is empty
+	ra.Description = *ngsitypes.NewTextProperty(dev.Message)
+	ra.Status = *ngsitypes.NewTextProperty("onGoing")
 
 	requestBody, err := json.Marshal(ra)
 	if err != nil {
@@ -44,6 +47,8 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 		log.Error().Msgf("failed to send RoadAccident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
 		return errors.New("")
 	}
+
+	ts.log.Info().Msg(string(requestBody))
 
 	return err
 }

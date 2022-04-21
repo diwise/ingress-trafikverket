@@ -13,6 +13,7 @@ type TrafficService interface {
 	getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error)
 	getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) ([]byte, error)
 	publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDeviation) error
+	updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error
 }
 
 type ts struct {
@@ -59,14 +60,24 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	}
 
 	for _, sitch := range tfvResp.Response.Result[0].Situation {
-		for _, dev := range sitch.Deviation {
-			err = ts.publishRoadAccidentsToContextBroker(ctx, dev)
-			if err != nil {
-				return lastChangeID, err
+		if !sitch.Deleted {
+			for _, dev := range sitch.Deviation {
+				err = ts.publishRoadAccidentsToContextBroker(ctx, dev)
+				if err != nil {
+					return lastChangeID, err
+				}
 			}
-		}
+		} else {
+			/*err = ts.updateRoadAccidentStatus()
+			if err != nil {
 
+			}*/
+		}
 	}
 
 	return lastChangeID, err
+}
+
+func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error {
+	return nil
 }
