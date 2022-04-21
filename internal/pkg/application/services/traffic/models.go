@@ -19,6 +19,9 @@ type tfvResponse struct {
 			Situation []struct {
 				Deviation []tfvDeviation `json:"Deviation"`
 			} `json:"Situation"`
+			Info struct {
+				LastChangeID string `json:"LASTCHANGEID"`
+			} `json:"INFO"`
 		} `json:"RESULT"`
 	} `json:"RESPONSE"`
 }
