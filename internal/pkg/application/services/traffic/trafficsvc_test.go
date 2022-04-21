@@ -13,20 +13,26 @@ import (
 func TestTrafficFromTFV(t *testing.T) {
 	is, ts := setupMockTrafficService(t, http.StatusOK, tfvResponseJSON)
 
-	_, err := ts.getTrafficInformationFromTFV(context.Background())
+	_, err := ts.getRoadAccidentsFromTFV(context.Background())
+	is.NoErr(err)
+}
+
+func TestXxx(t *testing.T) {
+	is, ts := setupMockTrafficService(t, http.StatusCreated, "")
+
+	err := ts.publishRoadAccidentsToContextBroker([]byte(tfvResponseJSON), context.Background())
 	is.NoErr(err)
 }
 
 func setupMockTrafficService(t *testing.T, statusCode int, body string) (*is.I, TrafficService) {
 	is := is.New(t)
 	svcMock := setupMockServiceThatReturns(statusCode, body)
-	ts := NewTrafficService(zerolog.Logger{}, "", svcMock.URL, "")
+	ts := NewTrafficService(zerolog.Logger{}, "", svcMock.URL, svcMock.URL)
 
 	return is, ts
 }
 
 func setupMockServiceThatReturns(statusCode int, body string) *httptest.Server {
-
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(statusCode)

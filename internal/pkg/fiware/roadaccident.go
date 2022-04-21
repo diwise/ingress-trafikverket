@@ -7,12 +7,12 @@ import (
 
 type RoadAccident struct {
 	ngsitypes.BaseEntity
-	AccidentDate ngsitypes.DateTimeProperty   `json:"accidentDate"`
-	Location     geojson.GeoJSONPropertyPoint `json:"location"`
-	Description  ngsitypes.TextProperty       `json:"description"`
-	DateCreated  ngsitypes.DateTimeProperty   `json:"dateCreated"`
-	DateModified ngsitypes.DateTimeProperty   `json:"dateModified"`
-	Status       ngsitypes.DateTimeProperty   `json:"status"`
+	AccidentDate ngsitypes.DateTimeProperty `json:"accidentDate,omitempty"`
+	Location     *geojson.GeoJSONProperty   `json:"location,omitempty"`
+	Description  ngsitypes.TextProperty     `json:"description,omitempty"`
+	DateCreated  ngsitypes.DateTimeProperty `json:"dateCreated,omitempty"`
+	DateModified ngsitypes.DateTimeProperty `json:"dateModified,omitempty"`
+	Status       ngsitypes.DateTimeProperty `json:"status,omitempty"`
 }
 
 func NewRoadAccident(entityID string) RoadAccident {

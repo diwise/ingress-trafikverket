@@ -15,7 +15,7 @@ import (
 
 var tfvtracer = otel.Tracer("tfv-trafficinfo-client")
 
-func (ts *ts) getTrafficInformationFromTFV(ctx context.Context) ([]byte, error) {
+func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context) ([]byte, error) {
 	var err error
 	ctx, span := tfvtracer.Start(ctx, "get-tfv-traffic-information")
 	defer func() {

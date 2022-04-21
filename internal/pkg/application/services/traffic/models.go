@@ -5,10 +5,12 @@ type tfvGeometry struct {
 }
 
 type tfvDeviation struct {
-	Id       string      `json:"Id"`
-	Header   string      `json:"Header"`
-	IconId   string      `json:"IconId"`
-	Geometry tfvGeometry `json:"Geometry"`
+	Id        string      `json:"Id"`
+	Header    string      `json:"Header"`
+	IconId    string      `json:"IconId"`
+	Geometry  tfvGeometry `json:"Geometry"`
+	StartTime string      `json:"StartTime"`
+	EndTime   string      `json:"EndTime"`
 }
 
 type tfvResponse struct {
