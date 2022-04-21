@@ -12,7 +12,7 @@ type RoadAccident struct {
 	Description  ngsitypes.TextProperty     `json:"description,omitempty"`
 	DateCreated  ngsitypes.DateTimeProperty `json:"dateCreated,omitempty"`
 	DateModified ngsitypes.DateTimeProperty `json:"dateModified,omitempty"`
-	Status       ngsitypes.DateTimeProperty `json:"status,omitempty"`
+	Status       ngsitypes.TextProperty     `json:"status,omitempty"`
 }
 
 func NewRoadAccident(entityID string) RoadAccident {
