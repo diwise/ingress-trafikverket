@@ -48,7 +48,7 @@ func main() {
 	}
 }
 
-//featureIsEnabled checks wether a given feature is enabled by exanding the feature name into <uppercas>_ENABLED and checking if the corresponding environment variable is set to true.
+//featureIsEnabled checks wether a given feature is enabled by exanding the feature name into <uppercase>_ENABLED and checking if the corresponding environment variable is set to true.
 //  Ex: weather -> WEATHER_ENABLED
 func featureIsEnabled(logger zerolog.Logger, feature string) bool {
 	featureKey := fmt.Sprintf("%s_ENABLED", strings.ToUpper(feature))
