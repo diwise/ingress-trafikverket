@@ -1,6 +1,7 @@
 package roadaccidents
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -94,9 +95,14 @@ func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) er
 	ra := fiware.NewRoadAccident(dev.Id)
 	ra.Status = *ngsitypes.NewTextProperty("solved")
 
+	patchBody, err := json.Marshal(ra)
+	if err != nil {
+		return err
+	}
+
 	url := fmt.Sprintf("%s/ngsi-ld/v1/entity/%s/attrs", ts.contextBrokerURL, ra.ID)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, nil)
+	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(patchBody))
 	if err != nil {
 		return err
 	}
