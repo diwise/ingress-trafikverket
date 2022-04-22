@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
@@ -31,7 +32,10 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 
 	ra := fiware.NewRoadAccident(dev.Id)
 	if dev.StartTime != "" {
-		ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(dev.StartTime)
+		t, _ := time.Parse(time.RFC3339, dev.StartTime)
+		utcTime := t.UTC().Format(time.RFC3339)
+
+		ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(utcTime)
 		ra.DateCreated = ra.AccidentDate
 	}
 	if dev.Geometry.WGS84 != "" {
