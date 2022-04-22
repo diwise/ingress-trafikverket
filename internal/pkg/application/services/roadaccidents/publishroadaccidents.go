@@ -44,7 +44,9 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 		return err
 	}
 
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, ts.contextBrokerURL, bytes.NewBuffer(requestBody))
+	url := fmt.Sprintf("%s/ngsi-ld/v1/entities", ts.contextBrokerURL)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(requestBody))
+	req.Header.Add("Content-Type", "application/ld+json")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
