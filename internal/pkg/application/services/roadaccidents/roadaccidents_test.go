@@ -42,11 +42,12 @@ func TestThatLastChangeIDStoresCorrectly(t *testing.T) {
 	is.Equal(lastChangeID, "7089127599774892692")
 }
 
-func TestXxx(t *testing.T) {
+func TestThatIfSituationIsDeletedItTriggersUpdateStatus(t *testing.T) {
 	is, ts := setupMockRoadAccident(t, http.StatusOK, deletedTfvJSON, http.StatusCreated, "")
 
 	_, err := ts.getAndPublishRoadAccidents(context.Background(), "0")
 	is.NoErr(err)
+	// check if "updateRoadAccident" is called, and if status changed
 }
 
 func setupMockRoadAccident(t *testing.T, tfvCode int, tfvBody string, ctxCode int, ctxBody string) (*is.I, RoadAccidentSvc) {

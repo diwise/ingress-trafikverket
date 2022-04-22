@@ -12,7 +12,6 @@ import (
 	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
 	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
 	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -44,11 +43,11 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 		return err
 	}
 	if resp.StatusCode != http.StatusCreated {
-		log.Error().Msgf("failed to send RoadAccident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
+		ts.log.Error().Msgf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
 		return errors.New("")
 	}
 
-	ts.log.Info().Msg(string(requestBody))
+	ts.log.Info().Msgf("publishing road accident %s to context broker: %s", ra.ID, string(requestBody))
 
 	return err
 }
