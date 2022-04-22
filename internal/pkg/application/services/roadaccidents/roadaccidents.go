@@ -98,6 +98,9 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 }
 
 func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error {
+	var err error
+	ctx, span := tracer.Start(ctx, "patch-entity-status")
+	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
 	httpClient := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
