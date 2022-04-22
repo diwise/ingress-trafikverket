@@ -7,12 +7,12 @@ import (
 
 type CityWork struct {
 	ngsitypes.BaseEntity
-	Location     *geojson.GeoJSONProperty   `json:"location,omitempty"`
-	Description  ngsitypes.TextProperty     `json:"description,omitempty"`
-	DateCreated  ngsitypes.DateTimeProperty `json:"dateCreated,omitempty"`
-	DateModified ngsitypes.DateTimeProperty `json:"dateModified,omitempty"`
-	EndDate      ngsitypes.DateTimeProperty `json:"endDate,omitempty"`
-	StartDate    ngsitypes.DateTimeProperty `json:"startDate,omitempty"`
+	Location     *geojson.GeoJSONProperty    `json:"location,omitempty"`
+	Description  *ngsitypes.TextProperty     `json:"description,omitempty"`
+	DateCreated  ngsitypes.DateTimeProperty  `json:"dateCreated"`
+	DateModified *ngsitypes.DateTimeProperty `json:"dateModified,omitempty"`
+	EndDate      ngsitypes.DateTimeProperty  `json:"endDate"`
+	StartDate    ngsitypes.DateTimeProperty  `json:"startDate"`
 }
 
 func NewCityWork(entityID string) CityWork {
@@ -21,8 +21,6 @@ func NewCityWork(entityID string) CityWork {
 			ID:   CityWorkIDPrefix + entityID,
 			Type: CityWorkTypeName,
 			Context: []string{
-				"https://smartdatamodels.org/context",
-				"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
 				"https://raw.githubusercontent.com/smart-data-models/dataModel.Transportation/master/context.jsonld",
 			},
 		},
