@@ -84,6 +84,7 @@ func toCityWorkModel(sf sdlFeature) fiware.CityWork {
 	cw.EndDate = *ngsitypes.CreateDateTimeProperty(sf.Properties.End)
 	cw.Location = geojson.CreateGeoJSONPropertyFromWGS84(long, lat)
 	cw.DateCreated = *ngsitypes.CreateDateTimeProperty(time.Now().UTC().String())
+	cw.Description = *ngsitypes.NewTextProperty(sf.Properties.Description)
 
 	return cw
 }
