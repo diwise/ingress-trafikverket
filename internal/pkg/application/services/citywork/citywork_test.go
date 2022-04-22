@@ -20,8 +20,8 @@ func TestComplexModelCanBeCreated(t *testing.T) {
 
 	long, lat, err := m.Features[0].Geometry.AsPoint()
 
-	is.Equal(long, 613844.0)
-	is.Equal(lat, 6920388.159927368)
+	is.Equal(long, 17.202583472441642)
+	is.Equal(lat, 62.397368375410174 )
 
 	is.True(m != nil)
 	is.NoErr(err)
