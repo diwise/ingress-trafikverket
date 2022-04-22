@@ -26,12 +26,12 @@ func main() {
 
 	authenticationKey := getEnvironmentVariableOrDie(logger, "TFV_API_AUTH_KEY", "API Authentication Key")
 	trafikverketURL := getEnvironmentVariableOrDie(logger, "TFV_API_URL", "API URL")
-	/*contextBrokerURL := getEnvironmentVariableOrDie(logger, "CONTEXT_BROKER_URL", "Context Broker URL")
+	contextBrokerURL := getEnvironmentVariableOrDie(logger, "CONTEXT_BROKER_URL", "Context Broker URL")
 
-	ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
+	/*ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
 	go ws.Start(ctx)*/
 
-	ts := roadaccidents.NewRoadAccidentSvc(logger, authenticationKey, trafikverketURL, "")
+	ts := roadaccidents.NewRoadAccidentSvc(logger, authenticationKey, trafikverketURL, contextBrokerURL)
 	ts.Start(ctx)
 }
 
