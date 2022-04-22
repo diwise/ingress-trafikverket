@@ -2,14 +2,12 @@ package citywork
 
 import (
 	"context"
-	"errors"
-	"io/ioutil"
-	"net/http"
+	"encoding/json"
 	"time"
 
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
+	"github.com/diwise/ingress-trafikverket/internal/domain"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 )
 
@@ -17,72 +15,77 @@ var sdltracer = otel.Tracer("sdl-trafficinfo-client")
 
 type CityWorkSvc interface {
 	Start(ctx context.Context) error
-	getTrafficInformationFromSDL(ctx context.Context) ([]byte, error)
+	publishCityWorkToContextBroker(ctx context.Context, citywork fiware.CityWork) error
 }
 
 func NewCityWorkService(log zerolog.Logger, sundsvallvaxerURL string, contextBrokerURL string) CityWorkSvc {
+	s := NewSdlClient(log, sundsvallvaxerURL)
+	c := domain.NewContextBrokerClient(contextBrokerURL, log)
+
 	return &cw{
-		log:               log,
-		sundsvallvaxerURL: sundsvallvaxerURL,
-		contextBrokerURL:  contextBrokerURL,
+		log:           log,
+		sdlClient:     s,
+		contextbroker: c,
 	}
 }
 
 type cw struct {
-	log               zerolog.Logger
-	sundsvallvaxerURL string
-	contextBrokerURL  string
+	log           zerolog.Logger
+	sdlClient     SdlClient
+	contextbroker domain.ContextBrokerClient
 }
 
 func (cw *cw) Start(ctx context.Context) error {
-	var err error
-
 	for {
-		r, err = cw.getTrafficInformationFromSDL(ctx)
+		response, err := cw.sdlClient.Get(ctx)
 		if err != nil {
 			cw.log.Error().Msg(err.Error())
 			return err
 		}
+
+		m, err := toModel(response)
+		if err != nil {
+			cw.log.Error().Msg(err.Error())
+			return err
+		}
+
+		for _, f := range m.Features {
+			cwModel := toCityWorkModel(f)
+			err = cw.publishCityWorkToContextBroker(ctx, cwModel)
+			if err != nil {
+				cw.log.Error().Msg(err.Error())
+				return err
+			}
+		}
+
 		time.Sleep(30 * time.Second)
 	}
 }
 
-func (cw *cw) getTrafficInformationFromSDL(ctx context.Context) ([]byte, error) {
-	var err error
-	ctx, span := sdltracer.Start(ctx, "get-sdl-traffic-information")
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-		}
-		span.End()
-	}()
+func toModel(resp []byte) (*sdlResponse, error) {
+	var m sdlResponse
 
-	log := logging.GetLoggerFromContext(ctx)
-
-	httpClient := http.Client{
-		Transport: otelhttp.NewTransport(http.DefaultTransport),
-	}
-
-	apiReq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://karta.sundsvall.se/origoserver/converttogeojson/?q=sundsvallvaxerGC", nil)
+	err := json.Unmarshal(resp, &m)
 	if err != nil {
 		return nil, err
 	}
 
-	apiResponse, err := httpClient.Do(apiReq)
-	if err != nil {
-		log.Error().Msgf("failed to retrieve traffic information")
-		return nil, err
+	return &m, nil
+}
+
+func toCityWorkModel(sf sdlFeature) fiware.CityWork {
+
+	entityID := sf.Properties.Description
+
+	cw := fiware.NewCityWork(entityID)
+
+	return cw
+}
+
+func (cw *cw) publishCityWorkToContextBroker(ctx context.Context, citywork fiware.CityWork) error {
+	if err := cw.contextbroker.Post(ctx, citywork); err != nil {
+		cw.log.Error().Err(err)
+		return err
 	}
-	if apiResponse.StatusCode != http.StatusOK {
-		log.Error().Msgf("failed to retrieve traffic information, expected status code %d, but got %d", http.StatusOK, apiResponse.StatusCode)
-		return nil, errors.New("")
-	}
-
-	defer apiResponse.Body.Close()
-
-	responseBody, err := ioutil.ReadAll(apiResponse.Body)
-
-	log.Info().Msgf("received response: " + string(responseBody))
-
-	return responseBody, err
+	return nil
 }
