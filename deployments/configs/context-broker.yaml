@@ -1,0 +1,11 @@
+tenants:
+  - id: default
+    name: Default
+    contextSources:
+    - endpoint: http://orion-ld:1026
+      information:
+      - entities:
+        - idPattern: ^urn:ngsi-ld:CityWork:.+
+          type: CityWork
+        - idPattern: ^urn:ngsi-ld:RoadAccident:.+
+          type: RoadAccident
