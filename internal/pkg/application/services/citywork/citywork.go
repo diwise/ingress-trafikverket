@@ -18,10 +18,7 @@ type CityWorkSvc interface {
 	publishCityWorkToContextBroker(ctx context.Context, citywork fiware.CityWork) error
 }
 
-func NewCityWorkService(log zerolog.Logger, sundsvallvaxerURL string, contextBrokerURL string) CityWorkSvc {
-	s := NewSdlClient(log, sundsvallvaxerURL)
-	c := domain.NewContextBrokerClient(contextBrokerURL, log)
-
+func NewCityWorkService(log zerolog.Logger, s SdlClient, c domain.ContextBrokerClient) CityWorkSvc {
 	return &cw{
 		log:           log,
 		sdlClient:     s,

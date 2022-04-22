@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/diwise/ingress-trafikverket/internal/domain"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/application/services/citywork"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/application/services/roadaccidents"
 	weathersvc "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/weather"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
@@ -32,6 +34,7 @@ func main() {
 	authenticationKey := getEnvironmentVariableOrDie(logger, "TFV_API_AUTH_KEY", "API Authentication Key")
 	trafikverketURL := getEnvironmentVariableOrDie(logger, "TFV_API_URL", "API URL")
 	contextBrokerURL := getEnvironmentVariableOrDie(logger, "CONTEXT_BROKER_URL", "Context Broker URL")
+	sundsvallvaxerURL := getEnvironmentVariableOrDie(logger, "SDL_KARTA_URL", "Sundsvall växer URL")
 
 	if featureIsEnabled(logger, "weather") {
 		ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
@@ -41,6 +44,11 @@ func main() {
 	if featureIsEnabled(logger, "roadaccident") {
 		ts := roadaccidents.NewService(authenticationKey, trafikverketURL, contextBrokerURL)
 		go ts.Start(ctx)
+	}
+
+	if featureIsEnabled(logger, "citywork") {
+		cw := SetupCityWorkService(logger, sundsvallvaxerURL, contextBrokerURL)
+		go cw.Start(ctx)
 	}
 
 	for {
@@ -89,4 +97,11 @@ func getEnvironmentVariableOrDie(log zerolog.Logger, envVar, description string)
 		log.Fatal().Msgf("please set %s to a valid %s.", envVar, description)
 	}
 	return value
+}
+
+func SetupCityWorkService(log zerolog.Logger, sundsvallvaxerURL string, contextBrokerUrl string) citywork.CityWorkSvc {
+	c := citywork.NewSdlClient(sundsvallvaxerURL, log)
+	b := domain.NewContextBrokerClient(contextBrokerUrl, log)
+
+	return citywork.NewCityWorkService(log, c, b)
 }

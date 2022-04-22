@@ -11,6 +11,8 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
+//go:generate moq -rm -out sdlclient_mock.go . SdlClient
+
 type SdlClient interface {
 	Get(cxt context.Context) ([]byte, error)
 }
@@ -19,7 +21,7 @@ type sdlClient struct {
 	sundsvallvaxerURL string
 }
 
-func NewSdlClient(log zerolog.Logger, sundsvallvaxerURL string) SdlClient {	
+func NewSdlClient(sundsvallvaxerURL string, log zerolog.Logger) SdlClient {	
 	const url string = `https://karta.sundsvall.se/origoserver/converttogeojson/?q=sundsvallvaxerGC`
 	
 	if sundsvallvaxerURL == "" {
