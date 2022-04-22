@@ -1,4 +1,4 @@
-package trafficsvc
+package roadaccidents
 
 type tfvGeometry struct {
 	WGS84 string `json:"WGS84"`

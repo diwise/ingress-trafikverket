@@ -1,4 +1,4 @@
-package trafficsvc
+package roadaccidents
 
 import (
 	"bytes"

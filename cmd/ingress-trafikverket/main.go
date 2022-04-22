@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	trafficsvc "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/traffic"
+	roadaccidents "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/traffic"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
 	"github.com/rs/zerolog"
@@ -26,12 +26,12 @@ func main() {
 
 	authenticationKey := getEnvironmentVariableOrDie(logger, "TFV_API_AUTH_KEY", "API Authentication Key")
 	trafikverketURL := getEnvironmentVariableOrDie(logger, "TFV_API_URL", "API URL")
-	contextBrokerURL := getEnvironmentVariableOrDie(logger, "CONTEXT_BROKER_URL", "Context Broker URL")
+	/*contextBrokerURL := getEnvironmentVariableOrDie(logger, "CONTEXT_BROKER_URL", "Context Broker URL")
 
-	/*ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
+	ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
 	go ws.Start(ctx)*/
 
-	ts := trafficsvc.NewTrafficService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
+	ts := roadaccidents.NewTrafficService(logger, authenticationKey, trafikverketURL, "")
 	ts.Start(ctx)
 }
 
