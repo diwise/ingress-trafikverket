@@ -34,8 +34,16 @@ func TestPublishingRoadAccidentsToContextBroker(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestXxx(t *testing.T) {
+func TestThatLastChangeIDStoresCorrectly(t *testing.T) {
 	is, ts := setupMockRoadAccident(t, http.StatusOK, tfvResponseJSON, http.StatusCreated, roadAccidentJSON)
+
+	lastChangeID, err := ts.getAndPublishRoadAccidents(context.Background(), "0")
+	is.NoErr(err)
+	is.Equal(lastChangeID, "7089127599774892692")
+}
+
+func TestXxx(t *testing.T) {
+	is, ts := setupMockRoadAccident(t, http.StatusOK, deletedTfvJSON, http.StatusCreated, "")
 
 	_, err := ts.getAndPublishRoadAccidents(context.Background(), "0")
 	is.NoErr(err)
@@ -62,4 +70,4 @@ const roadAccidentJSON string = `{"id":"urn:ngsi-ld:RoadAccident:SE_STA_TRISSID_
 
 const tfvResponseJSON string = `{"RESPONSE":{"RESULT":[{"Situation":[{"Deleted":false,"Deviation":[{"EndTime":"2022-04-21T21:15:00.000+02:00","Geometry":{"WGS84":"POINT (13.0958767 55.9722252)"},"IconId":"roadAccident","Id":"SE_STA_TRISSID_1_9879392","Message":"Trafikolycka med flera fordon söder om Kågeröd.","StartTime":"2022-04-21T20:12:01.000+02:00"}]}],"INFO":{"LASTCHANGEID":"7089127599774892692"}}]}}`
 
-const deletedTfvJSON string = `{"RESPONSE":{"RESULT":[{"Situation":[{"Deleted":false,"Deviation":[{"EndTime":"2022-04-21T21:15:00.000+02:00","Geometry":{"WGS84":"POINT (13.0958767 55.9722252)"},"IconId":"roadAccident","Id":"SE_STA_TRISSID_1_9879392","Message":"Trafikolycka med flera fordon söder om Kågeröd.","StartTime":"2022-04-21T20:12:01.000+02:00"}]}],"INFO":{"LASTCHANGEID":"7089127597489431414"}}]}}`
+const deletedTfvJSON string = `{"RESPONSE":{"RESULT":[{"Situation":[{"Deleted":true,"Deviation":[{"EndTime":"2022-04-21T21:15:00.000+02:00","Geometry":{"WGS84":"POINT (13.0958767 55.9722252)"},"IconId":"roadAccident","Id":"SE_STA_TRISSID_1_9879392","Message":"Trafikolycka med flera fordon söder om Kågeröd.","StartTime":"2022-04-21T20:12:01.000+02:00"}]}],"INFO":{"LASTCHANGEID":"7089127597489431414"}}]}}`

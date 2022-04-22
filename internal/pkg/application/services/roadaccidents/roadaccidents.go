@@ -3,9 +3,14 @@ package roadaccidents
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
+	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type RoadAccidentSvc interface {
@@ -81,5 +86,28 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 }
 
 func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error {
+
+	httpClient := http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
+
+	ra := fiware.NewRoadAccident(dev.Id)
+	ra.Status = *ngsitypes.NewTextProperty("solved")
+
+	url := fmt.Sprintf("%s/ngsi-ld/v1/entity/%s/attrs", ts.contextBrokerURL, ra.ID)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusNoContent {
+		return err
+	}
+
 	return nil
 }
