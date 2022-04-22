@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"github.com/rs/zerolog"
 )
 
 func TestRetrievingRoadAccidentsFromTFV(t *testing.T) {
@@ -53,7 +52,7 @@ func setupMockRoadAccident(t *testing.T, tfvCode int, tfvBody string, ctxCode in
 	is := is.New(t)
 	svcMock := setupMockServiceThatReturns(tfvCode, tfvBody)
 	ctxMock := setupMockServiceThatReturns(ctxCode, ctxBody)
-	ts := NewRoadAccidentSvc(zerolog.Logger{}, "", svcMock.URL, ctxMock.URL)
+	ts := NewService("", svcMock.URL, ctxMock.URL)
 
 	return is, ts
 }
