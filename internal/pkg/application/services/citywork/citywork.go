@@ -38,28 +38,27 @@ type cw struct {
 
 func (cw *cw) Start(ctx context.Context) error {
 	for {
+		time.Sleep(10 * time.Second)
+
 		response, err := cw.sdlClient.Get(ctx)
 		if err != nil {
-			cw.log.Error().Msg(err.Error())
-			return err
+			cw.log.Error().Err(err).Msg("failed to get city work")
+			continue
 		}
 
 		m, err := toModel(response)
 		if err != nil {
-			cw.log.Error().Msg(err.Error())
-			return err
+			cw.log.Error().Err(err).Msg("failed to convert to model")
+			continue
 		}
 
 		for _, f := range m.Features {
 			cwModel := toCityWorkModel(f)
 			err = cw.publishCityWorkToContextBroker(ctx, cwModel)
 			if err != nil {
-				cw.log.Error().Msg(err.Error())
-				return err
+				cw.log.Error().Err(err).Msg("failed to publish")
 			}
 		}
-
-		time.Sleep(30 * time.Second)
 	}
 }
 
