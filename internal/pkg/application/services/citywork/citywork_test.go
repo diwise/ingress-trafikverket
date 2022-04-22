@@ -6,23 +6,37 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestThatSimpleModelCanBeCreated(t *testing.T) {
+func TestSimpleModelCanBeCreated(t *testing.T) {
 	is := testSetup(t)
 	m, err := toModel([]byte(simple))
-	
-	is.True(m != nil)	
+
+	is.True(m != nil)
 	is.NoErr(err)
 }
 
-func TestThatComplexModelCanBeCreated(t *testing.T) {
+func TestComplexModelCanBeCreated(t *testing.T) {
 	is := testSetup(t)
-	m, err := toModel([]byte(complex))
-	
-	is.True(m != nil)	
+	m, _ := toModel([]byte(complex))
+
+	long, lat, err := m.Features[0].Geometry.AsPoint()
+
+	is.Equal(long, 613844.0)
+	is.Equal(lat, 6920388.159927368)
+
+	is.True(m != nil)
 	is.NoErr(err)
 }
 
-func testSetup(t *testing.T) (*is.I) {
+func TestModelCanBeConvertedToCityWork(t *testing.T){
+    is := testSetup(t)
+    m, _ := toModel([]byte(simple))
+    
+    cw := toCityWorkModel(m.Features[0])
+
+    is.Equal(cw.ID, "")
+}
+
+func testSetup(t *testing.T) *is.I {
 	is := is.New(t)
 	return is
 }

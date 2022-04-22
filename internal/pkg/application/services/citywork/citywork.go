@@ -7,6 +7,8 @@ import (
 
 	"github.com/diwise/ingress-trafikverket/internal/domain"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
+	geojson "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
+	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 )
@@ -72,9 +74,13 @@ func toModel(resp []byte) (*sdlResponse, error) {
 
 func toCityWorkModel(sf sdlFeature) fiware.CityWork {
 
-	entityID := sf.Properties.Description
+	entityID := sf.ID()
+	long, lat, _ := sf.Geometry.AsPoint()
 
 	cw := fiware.NewCityWork(entityID)
+	cw.StartDate = *ngsitypes.CreateDateTimeProperty(sf.Properties.Start)
+	cw.EndDate = *ngsitypes.CreateDateTimeProperty(sf.Properties.End)
+	cw.Location = geojson.CreateGeoJSONPropertyFromWGS84(long, lat)
 
 	return cw
 }

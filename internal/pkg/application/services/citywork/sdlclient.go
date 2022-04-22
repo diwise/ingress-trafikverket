@@ -22,12 +22,6 @@ type sdlClient struct {
 }
 
 func NewSdlClient(sundsvallvaxerURL string, log zerolog.Logger) SdlClient {	
-	const url string = `https://karta.sundsvall.se/origoserver/converttogeojson/?q=sundsvallvaxerGC`
-	
-	if sundsvallvaxerURL == "" {
-		sundsvallvaxerURL = url
-	}
-
 	return &sdlClient{
 		sundsvallvaxerURL: sundsvallvaxerURL,	
 	}
