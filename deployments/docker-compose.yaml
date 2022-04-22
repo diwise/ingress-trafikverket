@@ -11,6 +11,7 @@ services:
     environment:
       TFV_API_AUTH_KEY: $TFV_API_AUTH_KEY
       TFV_API_URL: $TFV_API_URL
+      ROADACCIDENT_ENABLED: 'true'
       CONTEXT_BROKER_URL: 'http://context-broker:8080'
 
 
