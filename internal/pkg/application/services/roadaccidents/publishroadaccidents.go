@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -31,6 +32,7 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 	ra := fiware.NewRoadAccident(dev.Id)
 	if dev.StartTime != "" {
 		ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(dev.StartTime)
+		ra.DateCreated = ra.AccidentDate
 	}
 	if dev.Geometry.WGS84 != "" {
 		ra.Location = getLocationFromString(dev.Geometry.WGS84)
