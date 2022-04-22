@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type TrafficService interface {
+type RoadAccident interface {
 	Start(ctx context.Context) error
 	getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error)
 	getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) ([]byte, error)
@@ -23,7 +23,7 @@ type ts struct {
 	contextBrokerURL string
 }
 
-func NewTrafficService(log zerolog.Logger, authKey, tfvURL, contextBrokerURL string) TrafficService {
+func NewRoadAccident(log zerolog.Logger, authKey, tfvURL, contextBrokerURL string) RoadAccident {
 	return &ts{
 		log:              log,
 		authKey:          authKey,

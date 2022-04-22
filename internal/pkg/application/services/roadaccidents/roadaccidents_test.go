@@ -11,14 +11,14 @@ import (
 )
 
 func TestRetrievingRoadAccidentsFromTFV(t *testing.T) {
-	is, ts := setupMockTrafficService(t, http.StatusOK, tfvResponseJSON, 0, "")
+	is, ts := setupMockRoadAccident(t, http.StatusOK, tfvResponseJSON, 0, "")
 
 	_, err := ts.getRoadAccidentsFromTFV(context.Background(), "")
 	is.NoErr(err)
 }
 
 func TestPublishingRoadAccidentsToContextBroker(t *testing.T) {
-	is, ts := setupMockTrafficService(t, 0, "", http.StatusCreated, "")
+	is, ts := setupMockRoadAccident(t, 0, "", http.StatusCreated, "")
 
 	dev := tfvDeviation{
 		Id:     "id",
@@ -35,17 +35,17 @@ func TestPublishingRoadAccidentsToContextBroker(t *testing.T) {
 }
 
 func TestXxx(t *testing.T) {
-	is, ts := setupMockTrafficService(t, http.StatusOK, tfvResponseJSON, http.StatusCreated, roadAccidentJSON)
+	is, ts := setupMockRoadAccident(t, http.StatusOK, tfvResponseJSON, http.StatusCreated, roadAccidentJSON)
 
 	_, err := ts.getAndPublishRoadAccidents(context.Background(), "0")
 	is.NoErr(err)
 }
 
-func setupMockTrafficService(t *testing.T, tfvCode int, tfvBody string, ctxCode int, ctxBody string) (*is.I, TrafficService) {
+func setupMockRoadAccident(t *testing.T, tfvCode int, tfvBody string, ctxCode int, ctxBody string) (*is.I, RoadAccident) {
 	is := is.New(t)
 	svcMock := setupMockServiceThatReturns(tfvCode, tfvBody)
 	ctxMock := setupMockServiceThatReturns(ctxCode, ctxBody)
-	ts := NewTrafficService(zerolog.Logger{}, "", svcMock.URL, ctxMock.URL)
+	ts := NewRoadAccident(zerolog.Logger{}, "", svcMock.URL, ctxMock.URL)
 
 	return is, ts
 }
