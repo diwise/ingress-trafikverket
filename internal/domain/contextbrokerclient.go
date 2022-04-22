@@ -14,6 +14,8 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
+//go:generate moq -rm -out contextbrokerclient_mock.go . ContextBrokerClient
+
 var tracer = otel.Tracer("context-broker-client")
 
 type ContextBrokerClient interface {
