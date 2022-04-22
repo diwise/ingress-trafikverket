@@ -21,10 +21,7 @@ func NewCityWork(entityID string) CityWork {
 			ID:   CityWorkIDPrefix + entityID,
 			Type: CityWorkTypeName,
 			Context: []string{
-<<<<<<< HEAD
-=======
 				"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
->>>>>>> ea705ab (remove non existent context)
 				"https://raw.githubusercontent.com/smart-data-models/dataModel.Transportation/master/context.jsonld",
 			},
 		},
