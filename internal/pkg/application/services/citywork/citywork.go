@@ -1,19 +1,53 @@
-package roadworks
+package citywork
 
 import (
 	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
+	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 )
 
 var sdltracer = otel.Tracer("sdl-trafficinfo-client")
 
-func getTrafficInformationFromSDL(ctx context.Context) ([]byte, error) {
+type CityWorkSvc interface {
+	Start(ctx context.Context) error
+	getTrafficInformationFromSDL(ctx context.Context) ([]byte, error)
+}
+
+func NewCityWorkService(log zerolog.Logger, sundsvallvaxerURL string, contextBrokerURL string) CityWorkSvc {
+	return &cw{
+		log:               log,
+		sundsvallvaxerURL: sundsvallvaxerURL,
+		contextBrokerURL:  contextBrokerURL,
+	}
+}
+
+type cw struct {
+	log               zerolog.Logger
+	sundsvallvaxerURL string
+	contextBrokerURL  string
+}
+
+func (cw *cw) Start(ctx context.Context) error {
+	var err error
+
+	for {
+		r, err = cw.getTrafficInformationFromSDL(ctx)
+		if err != nil {
+			cw.log.Error().Msg(err.Error())
+			return err
+		}
+		time.Sleep(30 * time.Second)
+	}
+}
+
+func (cw *cw) getTrafficInformationFromSDL(ctx context.Context) ([]byte, error) {
 	var err error
 	ctx, span := sdltracer.Start(ctx, "get-sdl-traffic-information")
 	defer func() {

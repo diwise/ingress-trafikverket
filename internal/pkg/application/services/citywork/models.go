@@ -1,4 +1,4 @@
-package roadworks
+package citywork
 
 type sdlGeometry struct {
 	Type       string `json:"type"`
