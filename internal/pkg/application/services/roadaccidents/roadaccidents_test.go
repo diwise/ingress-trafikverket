@@ -41,11 +41,11 @@ func TestXxx(t *testing.T) {
 	is.NoErr(err)
 }
 
-func setupMockRoadAccident(t *testing.T, tfvCode int, tfvBody string, ctxCode int, ctxBody string) (*is.I, RoadAccident) {
+func setupMockRoadAccident(t *testing.T, tfvCode int, tfvBody string, ctxCode int, ctxBody string) (*is.I, RoadAccidentSvc) {
 	is := is.New(t)
 	svcMock := setupMockServiceThatReturns(tfvCode, tfvBody)
 	ctxMock := setupMockServiceThatReturns(ctxCode, ctxBody)
-	ts := NewRoadAccident(zerolog.Logger{}, "", svcMock.URL, ctxMock.URL)
+	ts := NewRoadAccidentSvc(zerolog.Logger{}, "", svcMock.URL, ctxMock.URL)
 
 	return is, ts
 }
