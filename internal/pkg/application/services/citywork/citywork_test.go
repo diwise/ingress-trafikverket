@@ -33,7 +33,7 @@ func TestModelCanBeConvertedToCityWork(t *testing.T){
     
     cw := toCityWorkModel(m.Features[0])
 
-    is.Equal(cw.ID, "")
+    is.Equal(cw.ID, "urn:ngsi-ld:CityWork:Gång-ochcykelvägKryssarvägen/Barkassvägen:20220420:20220531")
 }
 
 func testSetup(t *testing.T) *is.I {
