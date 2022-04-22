@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	roadaccidents "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/traffic"
+	roadaccidents "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/roadaccidents"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
 	"github.com/rs/zerolog"
