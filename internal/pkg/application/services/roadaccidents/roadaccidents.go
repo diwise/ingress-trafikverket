@@ -1,19 +1,13 @@
 package roadaccidents
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"net/http"
 	"time"
 
-	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
-	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -95,38 +89,6 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	}
 
 	return tfvResp.Response.Result[0].Info.LastChangeID, err
-}
-
-func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error {
-
-	httpClient := http.Client{
-		Transport: otelhttp.NewTransport(http.DefaultTransport),
-	}
-
-	ra := fiware.NewRoadAccident(dev.Id)
-	ra.Status = *ngsitypes.NewTextProperty("solved")
-
-	patchBody, err := json.Marshal(ra)
-	if err != nil {
-		return err
-	}
-
-	url := fmt.Sprintf("%s/ngsi-ld/v1/entity/%s/attrs", ts.contextBrokerURL, ra.ID)
-
-	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(patchBody))
-	if err != nil {
-		return err
-	}
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusNoContent {
-		return err
-	}
-
-	return nil
 }
 
 func addTraceIDToLoggerAndStoreInContext(span trace.Span, logger zerolog.Logger, ctx context.Context) (string, context.Context, zerolog.Logger) {

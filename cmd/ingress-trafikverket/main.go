@@ -34,7 +34,6 @@ func main() {
 	authenticationKey := getEnvironmentVariableOrDie(logger, "TFV_API_AUTH_KEY", "API Authentication Key")
 	trafikverketURL := getEnvironmentVariableOrDie(logger, "TFV_API_URL", "API URL")
 	contextBrokerURL := getEnvironmentVariableOrDie(logger, "CONTEXT_BROKER_URL", "Context Broker URL")
-	sundsvallvaxerURL := getEnvironmentVariableOrDie(logger, "SDL_KARTA_URL", "Sundsvall växer URL")
 
 	if featureIsEnabled(logger, "weather") {
 		ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
@@ -47,6 +46,7 @@ func main() {
 	}
 
 	if featureIsEnabled(logger, "citywork") {
+		sundsvallvaxerURL := getEnvironmentVariableOrDie(logger, "SDL_KARTA_URL", "Sundsvall växer URL")
 		cw := SetupCityWorkService(logger, sundsvallvaxerURL, contextBrokerURL)
 		go cw.Start(ctx)
 	}

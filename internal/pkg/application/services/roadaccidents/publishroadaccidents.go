@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
@@ -30,7 +32,11 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 
 	ra := fiware.NewRoadAccident(dev.Id)
 	if dev.StartTime != "" {
-		ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(dev.StartTime)
+		t, _ := time.Parse(time.RFC3339, dev.StartTime)
+		utcTime := t.UTC().Format(time.RFC3339)
+
+		ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(utcTime)
+		ra.DateCreated = ra.AccidentDate
 	}
 	if dev.Geometry.WGS84 != "" {
 		ra.Location = getLocationFromString(dev.Geometry.WGS84)
@@ -44,19 +50,20 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 		return err
 	}
 
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, ts.contextBrokerURL, bytes.NewBuffer(requestBody))
+	url := fmt.Sprintf("%s/ngsi-ld/v1/entities", ts.contextBrokerURL)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(requestBody))
+	req.Header.Add("Content-Type", "application/ld+json")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 	if resp.StatusCode != http.StatusCreated {
-		err = fmt.Errorf("expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
-		logger.Error().Err(err).Msg("failed to send RoadAccident to context broker")
-		return err
+		logger.Error().Msgf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
+		return errors.New("")
 	}
 
-	logger.Info().Msg(string(requestBody))
+	logger.Info().Msgf("publishing road accident %s to context broker: %s", ra.ID, string(requestBody))
 
 	return err
 }
