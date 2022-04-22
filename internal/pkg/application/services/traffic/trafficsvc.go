@@ -68,14 +68,16 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 				}
 			}
 		} else {
-			/*err = ts.updateRoadAccidentStatus()
-			if err != nil {
-
-			}*/
+			for _, dev := range sitch.Deviation {
+				err = ts.updateRoadAccidentStatus(ctx, dev)
+				if err != nil {
+					return lastChangeID, err
+				}
+			}
 		}
 	}
 
-	return lastChangeID, err
+	return tfvResp.Response.Result[0].Info.LastChangeID, err
 }
 
 func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error {
