@@ -4,19 +4,26 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
 	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
 	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDeviation) error {
+	var err error
+	ctx, span := tracer.Start(ctx, "publish-to-broker")
+	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
+
+	logger := logging.GetLoggerFromContext(ctx)
+
 	httpClient := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
@@ -44,11 +51,12 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 		return err
 	}
 	if resp.StatusCode != http.StatusCreated {
-		log.Error().Msgf("failed to send RoadAccident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
-		return errors.New("")
+		err = fmt.Errorf("expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
+		logger.Error().Err(err).Msg("failed to send RoadAccident to context broker")
+		return err
 	}
 
-	ts.log.Info().Msg(string(requestBody))
+	logger.Info().Msg(string(requestBody))
 
 	return err
 }

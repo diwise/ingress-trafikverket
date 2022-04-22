@@ -9,21 +9,14 @@ import (
 	"net/http"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
 )
-
-var tfvtracer = otel.Tracer("tfv-trafficinfo-client")
 
 func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) ([]byte, error) {
 	var err error
-	ctx, span := tfvtracer.Start(ctx, "get-tfv-traffic-information")
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-		}
-		span.End()
-	}()
+	ctx, span := tracer.Start(ctx, "get-traffic-information")
+	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
 	log := logging.GetLoggerFromContext(ctx)
 
@@ -58,12 +51,12 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) 
 		log.Error().Msgf("failed to retrieve traffic information")
 		return nil, err
 	}
+	defer apiResponse.Body.Close()
+
 	if apiResponse.StatusCode != http.StatusOK {
 		log.Error().Msgf("failed to retrieve traffic information, expected status code %d, but got %d", http.StatusOK, apiResponse.StatusCode)
 		return nil, errors.New("")
 	}
-
-	defer apiResponse.Body.Close()
 
 	responseBody, err := ioutil.ReadAll(apiResponse.Body)
 
