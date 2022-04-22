@@ -1,4 +1,4 @@
-package roadworks
+package citywork
 
 import (
 	"context"
@@ -7,13 +7,31 @@ import (
 	"net/http"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
+	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
 )
 
-var sdltracer = otel.Tracer("sdl-trafficinfo-client")
+type SdlClient interface {
+	Get(cxt context.Context) ([]byte, error)
+}
 
-func getTrafficInformationFromSDL(ctx context.Context) ([]byte, error) {
+type sdlClient struct {
+	sundsvallvaxerURL string
+}
+
+func NewSdlClient(log zerolog.Logger, sundsvallvaxerURL string) SdlClient {	
+	const url string = `https://karta.sundsvall.se/origoserver/converttogeojson/?q=sundsvallvaxerGC`
+	
+	if sundsvallvaxerURL == "" {
+		sundsvallvaxerURL = url
+	}
+
+	return &sdlClient{
+		sundsvallvaxerURL: sundsvallvaxerURL,	
+	}
+}
+
+func (c *sdlClient) Get(ctx context.Context) ([]byte, error) {
 	var err error
 	ctx, span := sdltracer.Start(ctx, "get-sdl-traffic-information")
 	defer func() {
@@ -29,7 +47,7 @@ func getTrafficInformationFromSDL(ctx context.Context) ([]byte, error) {
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
-	apiReq, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://karta.sundsvall.se/origoserver/converttogeojson/?q=sundsvallvaxerGC", nil)
+	apiReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.sundsvallvaxerURL, nil)
 	if err != nil {
 		return nil, err
 	}

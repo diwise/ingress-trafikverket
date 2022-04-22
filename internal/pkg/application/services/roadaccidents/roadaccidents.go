@@ -9,9 +9,13 @@ import (
 	"time"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
 	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type RoadAccidentSvc interface {
@@ -23,15 +27,15 @@ type RoadAccidentSvc interface {
 }
 
 type ts struct {
-	log              zerolog.Logger
 	authKey          string
 	tfvURL           string
 	contextBrokerURL string
 }
 
-func NewRoadAccidentSvc(log zerolog.Logger, authKey, tfvURL, contextBrokerURL string) RoadAccidentSvc {
+var tracer = otel.Tracer("roadaccidents")
+
+func NewService(authKey, tfvURL, contextBrokerURL string) RoadAccidentSvc {
 	return &ts{
-		log:              log,
 		authKey:          authKey,
 		tfvURL:           tfvURL,
 		contextBrokerURL: contextBrokerURL,
@@ -42,11 +46,12 @@ func (ts *ts) Start(ctx context.Context) error {
 	var err error
 	lastChangeID := "0"
 
+	logger := logging.GetLoggerFromContext(ctx)
+
 	for {
 		lastChangeID, err = ts.getAndPublishRoadAccidents(ctx, lastChangeID)
 		if err != nil {
-			ts.log.Error().Msg(err.Error())
-			return err
+			logger.Error().Err(err).Msg("failed to get and publish accidents")
 		}
 
 		time.Sleep(30 * time.Second)
@@ -54,6 +59,12 @@ func (ts *ts) Start(ctx context.Context) error {
 }
 
 func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error) {
+	var err error
+	ctx, span := tracer.Start(ctx, "get-and-publish")
+	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
+
+	_, ctx, _ = addTraceIDToLoggerAndStoreInContext(span, logging.GetLoggerFromContext(ctx), ctx)
+
 	resp, err := ts.getRoadAccidentsFromTFV(ctx, lastChangeID)
 	if err != nil {
 		return lastChangeID, err
@@ -116,4 +127,19 @@ func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) er
 	}
 
 	return nil
+}
+
+func addTraceIDToLoggerAndStoreInContext(span trace.Span, logger zerolog.Logger, ctx context.Context) (string, context.Context, zerolog.Logger) {
+
+	log := logger
+	traceID := span.SpanContext().TraceID()
+	traceIDStr := ""
+
+	if traceID.IsValid() {
+		traceIDStr = traceID.String()
+		log = log.With().Str("traceID", traceIDStr).Logger()
+	}
+
+	ctx = logging.NewContextWithLogger(ctx, log)
+	return traceIDStr, ctx, log
 }
