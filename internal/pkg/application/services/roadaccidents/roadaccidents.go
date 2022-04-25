@@ -8,6 +8,7 @@ import (
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -43,14 +44,16 @@ func (ts *ts) Start(ctx context.Context) error {
 	logger := logging.GetLoggerFromContext(ctx)
 
 	for {
+		time.Sleep(30 * time.Second)
+
 		lastChangeID, err = ts.getAndPublishRoadAccidents(ctx, lastChangeID)
 		if err != nil {
-			logger.Error().Err(err).Msg("failed to get and publish accidents")
+			logger.Error().Err(err).Msg(err.Error())
 		}
-
-		time.Sleep(30 * time.Second)
 	}
 }
+
+var previousDeviations map[string]string = make(map[string]string)
 
 func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error) {
 	var err error
@@ -73,16 +76,26 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	for _, sitch := range tfvResp.Response.Result[0].Situation {
 		if !sitch.Deleted {
 			for _, dev := range sitch.Deviation {
+				_, exists := previousDeviations[dev.Id]
+				if exists {
+					continue
+				}
+
 				err = ts.publishRoadAccidentsToContextBroker(ctx, dev)
 				if err != nil {
-					return lastChangeID, err
+					log.Error().Err(err).Msgf("failed to publish road accident %s: %s", dev.Id, err.Error())
+					continue
 				}
+
+				previousDeviations[dev.Id] = dev.Id
+
 			}
 		} else {
 			for _, dev := range sitch.Deviation {
 				err = ts.updateRoadAccidentStatus(ctx, dev)
 				if err != nil {
-					return lastChangeID, err
+					log.Error().Err(err).Msgf("failed to update road accident %s: %s", dev.Id, err.Error())
+					continue
 				}
 			}
 		}
