@@ -34,6 +34,8 @@ type cw struct {
 	contextbroker domain.ContextBrokerClient
 }
 
+var previous map[string]string = make(map[string]string)
+
 func (cw *cw) Start(ctx context.Context) error {
 	for {
 		time.Sleep(10 * time.Second)
@@ -51,11 +53,19 @@ func (cw *cw) Start(ctx context.Context) error {
 		}
 
 		for _, f := range m.Features {
+			featureID := f.ID()
+			if _, exists := previous[featureID]; exists {
+				continue
+			}
+
 			cwModel := toCityWorkModel(f)
 			err = cw.publishCityWorkToContextBroker(ctx, cwModel)
 			if err != nil {
 				cw.log.Error().Err(err).Msg("failed to publish")
+				continue
 			}
+
+			previous[featureID] = featureID
 		}
 	}
 }
