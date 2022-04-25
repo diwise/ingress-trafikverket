@@ -42,9 +42,10 @@ func (cw *cw) Start(ctx context.Context) error {
 			continue
 		}
 
-		m, err := toModel(response)
+		var m sdlResponse
+		err = json.Unmarshal(response, &m)		
 		if err != nil {
-			cw.log.Error().Err(err).Msg("failed to convert to model")
+			cw.log.Error().Err(err).Msg("failed to unmarshal model")
 			continue
 		}
 
@@ -65,17 +66,6 @@ func (cw *cw) Start(ctx context.Context) error {
 			previous[featureID] = featureID
 		}
 	}
-}
-
-func toModel(resp []byte) (*sdlResponse, error) {
-	var m sdlResponse
-
-	err := json.Unmarshal(resp, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return &m, nil
 }
 
 func toCityWorkModel(sf sdlFeature) fiware.CityWork {
