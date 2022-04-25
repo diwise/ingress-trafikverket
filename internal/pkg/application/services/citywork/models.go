@@ -38,7 +38,9 @@ type sdlGeometry struct {
 }
 
 func (sf *sdlFeature) ID() string {
-	id := strings.ReplaceAll(sf.Properties.Title, " ", "") + ":" + strings.ReplaceAll(sf.Properties.Start, "-", "") + ":" + strings.ReplaceAll(sf.Properties.End, "-", "")
+	long, lat, _ := sf.Geometry.AsPoint()
+	id := fmt.Sprintf("%b:%b:%s:%s", long, lat, sf.Properties.Start, sf.Properties.End)
+	id = strings.ReplaceAll(strings.ReplaceAll(id, "-", ""), ".", "")
 	return id
 }
 
