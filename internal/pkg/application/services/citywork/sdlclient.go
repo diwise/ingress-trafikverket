@@ -9,9 +9,12 @@ import (
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 )
 
 //go:generate moq -rm -out sdlclient_mock.go . SdlClient
+
+var sdltracer = otel.Tracer("sdl-trafficinfo-client")
 
 type SdlClient interface {
 	Get(cxt context.Context) ([]byte, error)

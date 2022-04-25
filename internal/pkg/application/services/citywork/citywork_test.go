@@ -33,7 +33,7 @@ func TestModelCanBeConvertedToCityWork(t *testing.T){
     
     cw := toCityWorkModel(m.Features[0])
 
-    is.Equal(cw.ID, "urn:ngsi-ld:CityWork:5371672647434241p-33:7434058932651296p-30:20220420:20220531")
+    is.Equal(cw.ID, "urn:ngsi-ld:CityWork:4905302560875326p48:8785065399290166p47:20220420:20220531")
 }
 
 func testSetup(t *testing.T) *is.I {

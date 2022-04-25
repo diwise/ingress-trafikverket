@@ -10,10 +10,7 @@ import (
 	geojson "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
 	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/otel"
 )
-
-var sdltracer = otel.Tracer("sdl-trafficinfo-client")
 
 type CityWorkSvc interface {
 	Start(ctx context.Context) error
