@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 
 	"github.com/rs/zerolog"
@@ -67,11 +66,6 @@ func (c *contextBrokerClient) AddEntity(ctx context.Context, entity interface{})
 	}
 
 	req.Header.Add("Content-Type", "application/ld+json")
-
-	dump, err := httputil.DumpRequest(req, true)
-	if err != nil {
-		c.log.Debug().Msg(string(dump))
-	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
