@@ -18,8 +18,8 @@ var _ ContextBrokerClient = &ContextBrokerClientMock{}
 //
 // 		// make and configure a mocked ContextBrokerClient
 // 		mockedContextBrokerClient := &ContextBrokerClientMock{
-// 			PostFunc: func(ctx context.Context, entity interface{}) error {
-// 				panic("mock out the Post method")
+// 			AddEntityFunc: func(ctx context.Context, entity interface{}) error {
+// 				panic("mock out the AddEntity method")
 // 			},
 // 		}
 //
@@ -28,26 +28,26 @@ var _ ContextBrokerClient = &ContextBrokerClientMock{}
 //
 // 	}
 type ContextBrokerClientMock struct {
-	// PostFunc mocks the Post method.
-	PostFunc func(ctx context.Context, entity interface{}) error
+	// AddEntityFunc mocks the AddEntity method.
+	AddEntityFunc func(ctx context.Context, entity interface{}) error
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// Post holds details about calls to the Post method.
-		Post []struct {
+		// AddEntity holds details about calls to the AddEntity method.
+		AddEntity []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Entity is the entity argument value.
 			Entity interface{}
 		}
 	}
-	lockPost sync.RWMutex
+	lockAddEntity sync.RWMutex
 }
 
-// Post calls PostFunc.
-func (mock *ContextBrokerClientMock) Post(ctx context.Context, entity interface{}) error {
-	if mock.PostFunc == nil {
-		panic("ContextBrokerClientMock.PostFunc: method is nil but ContextBrokerClient.Post was just called")
+// AddEntity calls AddEntityFunc.
+func (mock *ContextBrokerClientMock) AddEntity(ctx context.Context, entity interface{}) error {
+	if mock.AddEntityFunc == nil {
+		panic("ContextBrokerClientMock.AddEntityFunc: method is nil but ContextBrokerClient.AddEntity was just called")
 	}
 	callInfo := struct {
 		Ctx    context.Context
@@ -56,16 +56,16 @@ func (mock *ContextBrokerClientMock) Post(ctx context.Context, entity interface{
 		Ctx:    ctx,
 		Entity: entity,
 	}
-	mock.lockPost.Lock()
-	mock.calls.Post = append(mock.calls.Post, callInfo)
-	mock.lockPost.Unlock()
-	return mock.PostFunc(ctx, entity)
+	mock.lockAddEntity.Lock()
+	mock.calls.AddEntity = append(mock.calls.AddEntity, callInfo)
+	mock.lockAddEntity.Unlock()
+	return mock.AddEntityFunc(ctx, entity)
 }
 
-// PostCalls gets all the calls that were made to Post.
+// AddEntityCalls gets all the calls that were made to AddEntity.
 // Check the length with:
-//     len(mockedContextBrokerClient.PostCalls())
-func (mock *ContextBrokerClientMock) PostCalls() []struct {
+//     len(mockedContextBrokerClient.AddEntityCalls())
+func (mock *ContextBrokerClientMock) AddEntityCalls() []struct {
 	Ctx    context.Context
 	Entity interface{}
 } {
@@ -73,8 +73,8 @@ func (mock *ContextBrokerClientMock) PostCalls() []struct {
 		Ctx    context.Context
 		Entity interface{}
 	}
-	mock.lockPost.RLock()
-	calls = mock.calls.Post
-	mock.lockPost.RUnlock()
+	mock.lockAddEntity.RLock()
+	calls = mock.calls.AddEntity
+	mock.lockAddEntity.RUnlock()
 	return calls
 }

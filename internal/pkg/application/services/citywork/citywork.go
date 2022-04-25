@@ -13,8 +13,7 @@ import (
 )
 
 type CityWorkSvc interface {
-	Start(ctx context.Context) error
-	publishCityWorkToContextBroker(ctx context.Context, citywork fiware.CityWork) error
+	Start(ctx context.Context) error	
 }
 
 func NewCityWorkService(log zerolog.Logger, s SdlClient, c domain.ContextBrokerClient) CityWorkSvc {
@@ -56,12 +55,13 @@ func (cw *cw) Start(ctx context.Context) error {
 			}
 
 			cwModel := toCityWorkModel(f)
-			err = cw.publishCityWorkToContextBroker(ctx, cwModel)
+
+			err = cw.contextbroker.AddEntity(ctx, cwModel)
 			if err != nil {
-				cw.log.Error().Err(err).Msg("failed to publish")
+				cw.log.Error().Err(err).Msg("failed to add entity")
 				continue
 			}
-
+			
 			previous[featureID] = featureID
 		}
 	}
@@ -89,12 +89,4 @@ func toCityWorkModel(sf sdlFeature) fiware.CityWork {
 	cw.Description = ngsitypes.NewTextProperty(sf.Properties.Description)
 
 	return cw
-}
-
-func (cw *cw) publishCityWorkToContextBroker(ctx context.Context, citywork fiware.CityWork) error {
-	if err := cw.contextbroker.Post(ctx, citywork); err != nil {
-		cw.log.Error().Err(err)
-		return err
-	}
-	return nil
 }

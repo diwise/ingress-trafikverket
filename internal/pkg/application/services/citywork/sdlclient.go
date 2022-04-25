@@ -2,8 +2,8 @@ package citywork
 
 import (
 	"context"
-	"errors"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
@@ -24,9 +24,9 @@ type sdlClient struct {
 	sundsvallvaxerURL string
 }
 
-func NewSdlClient(sundsvallvaxerURL string, log zerolog.Logger) SdlClient {	
+func NewSdlClient(sundsvallvaxerURL string, log zerolog.Logger) SdlClient {
 	return &sdlClient{
-		sundsvallvaxerURL: sundsvallvaxerURL,	
+		sundsvallvaxerURL: sundsvallvaxerURL,
 	}
 }
 
@@ -53,19 +53,24 @@ func (c *sdlClient) Get(ctx context.Context) ([]byte, error) {
 
 	apiResponse, err := httpClient.Do(apiReq)
 	if err != nil {
-		log.Error().Msgf("failed to retrieve traffic information")
+		log.Error().Err(err).Msgf("failed to retrieve traffic information")
 		return nil, err
 	}
+
 	if apiResponse.StatusCode != http.StatusOK {
 		log.Error().Msgf("failed to retrieve traffic information, expected status code %d, but got %d", http.StatusOK, apiResponse.StatusCode)
-		return nil, errors.New("")
+		return nil, fmt.Errorf("expected status code %d, but got %d", http.StatusOK, apiResponse.StatusCode)
 	}
 
 	defer apiResponse.Body.Close()
 
-	responseBody, err := ioutil.ReadAll(apiResponse.Body)
+	body, err := io.ReadAll(apiResponse.Body)
+	if err != nil {
+		log.Error().Err(err).Msgf("failed to read response body")
+		return nil, err
+	}
 
-	log.Info().Msgf("received response: " + string(responseBody))
+	log.Info().Msgf("received response: %s...", string(body)[:100])
 
-	return responseBody, err
+	return body, err
 }

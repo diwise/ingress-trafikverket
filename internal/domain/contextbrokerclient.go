@@ -19,7 +19,7 @@ import (
 var tracer = otel.Tracer("context-broker-client")
 
 type ContextBrokerClient interface {
-	Post(ctx context.Context, entity interface{}) error
+	AddEntity(ctx context.Context, entity interface{}) error
 }
 
 type contextBrokerClient struct {
@@ -34,7 +34,7 @@ func NewContextBrokerClient(baseUrl string, log zerolog.Logger) ContextBrokerCli
 	}
 }
 
-func (c *contextBrokerClient) Post(ctx context.Context, entity interface{}) error {
+func (c *contextBrokerClient) AddEntity(ctx context.Context, entity interface{}) error {
 	var err error
 	ctx, span := tracer.Start(ctx, "create-entity")
 	defer func() {
