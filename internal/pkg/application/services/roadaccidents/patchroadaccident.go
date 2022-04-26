@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -44,7 +45,8 @@ func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) er
 		return err
 	}
 	if resp.StatusCode != http.StatusNoContent {
-		return err
+		errMsg := fmt.Sprintf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusNoContent, resp.StatusCode)
+		return errors.New(errMsg)
 	}
 
 	return nil

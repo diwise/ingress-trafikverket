@@ -78,6 +78,7 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 			for _, dev := range sitch.Deviation {
 				_, exists := previousDeviations[dev.Id]
 				if exists {
+					log.Info().Msgf("road accident %s has already been sent to context broker, skipping", dev.Id)
 					continue
 				}
 

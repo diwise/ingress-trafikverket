@@ -33,6 +33,16 @@ func TestPublishingRoadAccidentsToContextBroker(t *testing.T) {
 	is.NoErr(err)
 }
 
+func TestThatWeSkipPublishingRoadAccidentsWithPreviousIds(t *testing.T) {
+	is, ts := setupMockRoadAccident(t, http.StatusOK, tfvResponseJSON, http.StatusCreated, "")
+
+	lastChangeID, err := ts.getAndPublishRoadAccidents(context.Background(), "0")
+	is.NoErr(err)
+
+	_, err = ts.getAndPublishRoadAccidents(context.Background(), lastChangeID)
+	is.NoErr(err)
+}
+
 func TestThatLastChangeIDStoresCorrectly(t *testing.T) {
 	is, ts := setupMockRoadAccident(t, http.StatusOK, tfvResponseJSON, http.StatusCreated, roadAccidentJSON)
 
@@ -42,11 +52,10 @@ func TestThatLastChangeIDStoresCorrectly(t *testing.T) {
 }
 
 func TestThatIfSituationIsDeletedItTriggersUpdateStatus(t *testing.T) {
-	is, ts := setupMockRoadAccident(t, http.StatusOK, deletedTfvJSON, http.StatusCreated, "")
+	is, ts := setupMockRoadAccident(t, http.StatusOK, deletedTfvJSON, http.StatusNoContent, "")
 
 	_, err := ts.getAndPublishRoadAccidents(context.Background(), "0")
 	is.NoErr(err)
-	// check if "updateRoadAccident" is called, and if status changed
 }
 
 func setupMockRoadAccident(t *testing.T, tfvCode int, tfvBody string, ctxCode int, ctxBody string) (*is.I, RoadAccidentSvc) {

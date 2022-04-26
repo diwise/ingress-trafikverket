@@ -59,8 +59,8 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 		return err
 	}
 	if resp.StatusCode != http.StatusCreated {
-		logger.Error().Msgf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
-		return errors.New("")
+		errMsg := fmt.Sprintf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
+		return errors.New(errMsg)
 	}
 
 	logger.Info().Msgf("publishing road accident %s to context broker: %s", ra.ID, string(requestBody))
