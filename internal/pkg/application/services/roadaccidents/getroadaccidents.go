@@ -54,8 +54,8 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) 
 	defer apiResponse.Body.Close()
 
 	if apiResponse.StatusCode != http.StatusOK {
-		log.Error().Msgf("failed to retrieve traffic information, expected status code %d, but got %d", http.StatusOK, apiResponse.StatusCode)
-		return nil, errors.New("")
+		errMsg := fmt.Sprintf("failed to retrieve traffic information, expected status code %d, but got %d", http.StatusOK, apiResponse.StatusCode)
+		return nil, errors.New(errMsg)
 	}
 
 	responseBody, err := ioutil.ReadAll(apiResponse.Body)
