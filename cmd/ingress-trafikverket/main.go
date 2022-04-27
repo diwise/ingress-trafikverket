@@ -10,8 +10,8 @@ import (
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/application/services/roadaccidents"
 	weathersvc "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/weather"
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"github.com/rs/zerolog"
 )
 

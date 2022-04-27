@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
@@ -41,7 +41,7 @@ func (ts *ts) Start(ctx context.Context) error {
 	var err error
 	lastChangeID := "0"
 
-	logger := logging.GetLoggerFromContext(ctx)
+	logger := logging.GetFromContext(ctx)
 
 	for {
 		time.Sleep(30 * time.Second)
@@ -60,7 +60,7 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	ctx, span := tracer.Start(ctx, "get-and-publish")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	_, ctx, _ = addTraceIDToLoggerAndStoreInContext(span, logging.GetLoggerFromContext(ctx), ctx)
+	_, ctx, _ = addTraceIDToLoggerAndStoreInContext(span, logging.GetFromContext(ctx), ctx)
 
 	resp, err := ts.getRoadAccidentsFromTFV(ctx, lastChangeID)
 	if err != nil {

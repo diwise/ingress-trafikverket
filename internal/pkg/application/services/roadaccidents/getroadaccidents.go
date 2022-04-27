@@ -8,8 +8,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -18,7 +18,7 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) 
 	ctx, span := tracer.Start(ctx, "get-traffic-information")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	log := logging.GetLoggerFromContext(ctx)
+	log := logging.GetFromContext(ctx)
 
 	httpClient := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),

@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 )
@@ -25,7 +25,7 @@ func (ws *ws) getWeatherStationStatus(ctx context.Context, lastChangeID string) 
 		span.End()
 	}()
 
-	log := logging.GetLoggerFromContext(ctx)
+	log := logging.GetFromContext(ctx)
 
 	httpClient := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),

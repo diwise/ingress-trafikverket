@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/logging"
-	"github.com/diwise/ingress-trafikverket/internal/pkg/infrastructure/tracing"
 	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
 	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -24,7 +24,7 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 	ctx, span := tracer.Start(ctx, "publish-to-broker")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	logger := logging.GetLoggerFromContext(ctx)
+	logger := logging.GetFromContext(ctx)
 
 	httpClient := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
