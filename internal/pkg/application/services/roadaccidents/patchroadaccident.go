@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
+	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
 	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diwise/ingress-trafikverket/internal/pkg/fiware"
+	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
 	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
 	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
