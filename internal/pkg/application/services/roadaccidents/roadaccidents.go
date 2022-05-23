@@ -89,14 +89,17 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 				}
 
 				previousDeviations[dev.Id] = dev.Id
-
 			}
 		} else {
 			for _, dev := range sitch.Deviation {
-				err = ts.updateRoadAccidentStatus(ctx, dev)
-				if err != nil {
-					log.Error().Err(err).Msgf("failed to update road accident %s: %s", dev.Id, err.Error())
-					continue
+				_, exists := previousDeviations[dev.Id]
+
+				if exists {
+					err = ts.updateRoadAccidentStatus(ctx, dev)
+					if err != nil {
+						log.Error().Err(err).Msgf("failed to update road accident %s: %s", dev.Id, err.Error())
+						continue
+					}
 				}
 			}
 		}
