@@ -38,6 +38,7 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 		ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(utcTime)
 		ra.DateCreated = ra.AccidentDate
 	}
+
 	if dev.Geometry.WGS84 != "" {
 		ra.Location = getLocationFromString(dev.Geometry.WGS84)
 	}
@@ -58,12 +59,13 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 	if err != nil {
 		return err
 	}
+
 	if resp.StatusCode != http.StatusCreated {
 		errMsg := fmt.Sprintf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
 		return errors.New(errMsg)
 	}
 
-	logger.Info().Msgf("publishing road accident %s to context broker: %s", ra.ID, string(requestBody))
+	logger.Info().Msgf("published road accident %s to context broker: %s", ra.ID, string(requestBody))
 
 	return err
 }

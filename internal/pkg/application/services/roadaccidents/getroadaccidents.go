@@ -48,7 +48,7 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) 
 
 	apiResponse, err := httpClient.Do(apiReq)
 	if err != nil {
-		log.Error().Msgf("failed to retrieve traffic information")
+		log.Error().Err(err).Msg("request for traffic information failed")
 		return nil, err
 	}
 	defer apiResponse.Body.Close()
@@ -60,7 +60,7 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) 
 
 	responseBody, err := ioutil.ReadAll(apiResponse.Body)
 
-	log.Info().Msgf("received response: " + string(responseBody))
+	log.Info().Msgf("received response: %s", string(responseBody))
 
 	return responseBody, err
 }
