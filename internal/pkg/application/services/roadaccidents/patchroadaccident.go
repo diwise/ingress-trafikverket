@@ -33,9 +33,9 @@ func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) er
 		return err
 	}
 
-	url := fmt.Sprintf("%s/ngsi-ld/v1/entity/%s/attrs", ts.contextBrokerURL, ra.ID)
+	url := fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs", ts.contextBrokerURL, ra.ID)
 
-	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(patchBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, bytes.NewBuffer(patchBody))
 	if err != nil {
 		return err
 	}
@@ -44,6 +44,7 @@ func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) er
 	if err != nil {
 		return err
 	}
+
 	if resp.StatusCode != http.StatusNoContent {
 		errMsg := fmt.Sprintf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusNoContent, resp.StatusCode)
 		return errors.New(errMsg)
