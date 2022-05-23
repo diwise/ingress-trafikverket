@@ -4,34 +4,27 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/application/services/roadaccidents"
 	weathersvc "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/weather"
-	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
-	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
+	"github.com/diwise/service-chassis/pkg/infrastructure/buildinfo"
+	"github.com/diwise/service-chassis/pkg/infrastructure/env"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
 	"github.com/rs/zerolog"
 )
 
 const serviceName string = "ingress-trafikverket"
 
 func main() {
-	serviceVersion := version()
-
-	ctx, logger := logging.NewLogger(context.Background(), serviceName, serviceVersion)
-	logger.Info().Msg("starting up ...")
-
-	cleanup, err := tracing.Init(ctx, logger, serviceName, serviceVersion)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to init tracing")
-	}
+	serviceVersion := buildinfo.SourceVersion()
+	ctx, logger, cleanup := o11y.Init(context.Background(), serviceName, serviceVersion)
 	defer cleanup()
 
-	authenticationKey := getEnvironmentVariableOrDie(logger, "TFV_API_AUTH_KEY", "API Authentication Key")
-	trafikverketURL := getEnvironmentVariableOrDie(logger, "TFV_API_URL", "API URL")
-	contextBrokerURL := getEnvironmentVariableOrDie(logger, "CONTEXT_BROKER_URL", "Context Broker URL")
+	authenticationKey := env.GetVariableOrDie(logger, "TFV_API_AUTH_KEY", "API authentication key")
+	trafikverketURL := env.GetVariableOrDie(logger, "TFV_API_URL", "API URL")
+	contextBrokerURL := env.GetVariableOrDie(logger, "CONTEXT_BROKER_URL", "context broker URL")
 
 	if featureIsEnabled(logger, "weather") {
 		ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
@@ -61,32 +54,4 @@ func featureIsEnabled(logger zerolog.Logger, feature string) bool {
 	}
 
 	return isEnabled
-}
-
-func version() string {
-	buildInfo, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "unknown"
-	}
-
-	buildSettings := buildInfo.Settings
-	infoMap := map[string]string{}
-	for _, s := range buildSettings {
-		infoMap[s.Key] = s.Value
-	}
-
-	sha := infoMap["vcs.revision"]
-	if infoMap["vcs.modified"] == "true" {
-		sha += "+"
-	}
-
-	return sha
-}
-
-func getEnvironmentVariableOrDie(log zerolog.Logger, envVar, description string) string {
-	value := os.Getenv(envVar)
-	if value == "" {
-		log.Fatal().Msgf("please set %s to a valid %s.", envVar, description)
-	}
-	return value
 }
