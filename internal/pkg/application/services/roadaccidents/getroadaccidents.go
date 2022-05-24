@@ -31,7 +31,7 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) 
 
 	requestBody := fmt.Sprintf(`<REQUEST>
 	<LOGIN authenticationkey="%s" />
-	<QUERY objecttype="Situation" schemaversion="1.5" changeid="%s" includedeletedobjects="true">
+	<QUERY objecttype="Situation" schemaversion="1.2" changeid="%s" includedeletedobjects="true">
 		  <FILTER>
 			  <EQ name="Deviation.MessageType" value="Olycka" />%s
 		  </FILTER>
