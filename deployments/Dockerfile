@@ -21,6 +21,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 WORKDIR /opt/diwise
 
+LABEL "org.opencontainers.image.source"="https://github.com/diwise/ingress-trafikverket"
+
 COPY --from=builder --chown=1001 /app/cmd/ingress-trafikverket/ingress-trafikverket /opt/diwise
 
 RUN chown 1001 /opt/diwise

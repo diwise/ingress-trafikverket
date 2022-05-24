@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/diwise/ingress-trafikverket/internal/pkg/application/services/roadaccidents"
 	weathersvc "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/weather"
 	"github.com/diwise/service-chassis/pkg/infrastructure/buildinfo"
 	"github.com/diwise/service-chassis/pkg/infrastructure/env"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/cors"
 	"github.com/rs/zerolog"
 )
 
@@ -37,9 +40,7 @@ func main() {
 		go ts.Start(ctx)
 	}
 
-	for {
-		time.Sleep(5 * time.Second)
-	}
+	setupRouterAndWaitForConnections(logger)
 }
 
 //featureIsEnabled checks wether a given feature is enabled by exanding the feature name into <uppercase>_ENABLED and checking if the corresponding environment variable is set to true.
@@ -55,4 +56,22 @@ func featureIsEnabled(logger zerolog.Logger, feature string) bool {
 	}
 
 	return isEnabled
+}
+
+func setupRouterAndWaitForConnections(logger zerolog.Logger) {
+	r := chi.NewRouter()
+	r.Use(cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowCredentials: true,
+		Debug:            false,
+	}).Handler)
+
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	err := http.ListenAndServe(":8080", r)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to start router")
+	}
 }

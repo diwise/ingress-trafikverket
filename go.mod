@@ -4,7 +4,9 @@ go 1.18
 
 require (
 	github.com/diwise/ngsi-ld-golang v0.0.0-20220509075003-0b43983cfc22
+	github.com/go-chi/chi/v5 v5.0.7
 	github.com/matryer/is v1.4.0
+	github.com/rs/cors v1.8.2
 	github.com/rs/zerolog v1.26.1
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.31.0
 	go.opentelemetry.io/otel v1.6.3
