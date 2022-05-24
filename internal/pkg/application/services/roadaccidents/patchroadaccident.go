@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
 	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -33,22 +35,28 @@ func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) er
 		return err
 	}
 
-	url := fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs", ts.contextBrokerURL, ra.ID)
+	cbUrl := fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs/", ts.contextBrokerURL, url.QueryEscape(ra.ID))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, url, bytes.NewBuffer(patchBody))
-	if err != nil {
-		return err
-	}
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPatch, cbUrl, bytes.NewBuffer(patchBody))
+	req.Header.Add("Content-Type", "application/ld+json")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 
-	if resp.StatusCode != http.StatusNoContent {
-		errMsg := fmt.Sprintf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusNoContent, resp.StatusCode)
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusMultiStatus {
+		errMsg := fmt.Sprintf(
+			"failed to update road accident %s in context broker, expected status code %d, but got %d",
+			dev.Id, http.StatusNoContent, resp.StatusCode,
+		)
 		return errors.New(errMsg)
 	}
+
+	logger := logging.GetFromContext(ctx)
+	traceID, _ := tracing.ExtractTraceID(span)
+
+	logger.Info().Str("traceID", traceID).Str("entityID", ra.ID).Msg("updated status to solved")
 
 	return nil
 }

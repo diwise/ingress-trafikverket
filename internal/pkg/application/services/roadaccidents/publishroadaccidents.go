@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +20,9 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDeviation) error {
+var ErrAlreadyExists = errors.New("already exists")
+
+func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation) error {
 	var err error
 	ctx, span := tracer.Start(ctx, "publish-to-broker")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
@@ -51,8 +54,8 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 		return err
 	}
 
-	url := fmt.Sprintf("%s/ngsi-ld/v1/entities", ts.contextBrokerURL)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(requestBody))
+	cbUrl := fmt.Sprintf("%s/ngsi-ld/v1/entities", ts.contextBrokerURL)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, cbUrl, bytes.NewBuffer(requestBody))
 	req.Header.Add("Content-Type", "application/ld+json")
 
 	resp, err := httpClient.Do(req)
@@ -61,8 +64,28 @@ func (ts *ts) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDe
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		errMsg := fmt.Sprintf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
-		return errors.New(errMsg)
+		if resp.StatusCode != http.StatusConflict {
+			errMsg := fmt.Sprintf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
+			return errors.New(errMsg)
+		}
+
+		cbUrl = fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs/", ts.contextBrokerURL, url.QueryEscape(ra.ID))
+		req, _ := http.NewRequestWithContext(ctx, http.MethodPatch, cbUrl, bytes.NewBuffer(requestBody))
+		req.Header.Add("Content-Type", "application/ld+json")
+
+		resp, err = httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusMultiStatus {
+			errMsg := fmt.Sprintf("failed to update road accident in context broker, expected status code %d, but got %d", http.StatusNoContent, resp.StatusCode)
+			return errors.New(errMsg)
+		}
+
+		logger.Info().Msgf("updated road accident %s in context broker: %s", ra.ID, string(requestBody))
+
+		return nil
 	}
 
 	logger.Info().Msgf("published road accident %s to context broker: %s", ra.ID, string(requestBody))

@@ -27,8 +27,8 @@ var _ RoadAccidentSvc = &RoadAccidentSvcMock{}
 // 			getRoadAccidentsFromTFVFunc: func(ctx context.Context, lastChangeID string) ([]byte, error) {
 // 				panic("mock out the getRoadAccidentsFromTFV method")
 // 			},
-// 			publishRoadAccidentsToContextBrokerFunc: func(ctx context.Context, dev tfvDeviation) error {
-// 				panic("mock out the publishRoadAccidentsToContextBroker method")
+// 			publishRoadAccidentToContextBrokerFunc: func(ctx context.Context, dev tfvDeviation) error {
+// 				panic("mock out the publishRoadAccidentToContextBroker method")
 // 			},
 // 			updateRoadAccidentStatusFunc: func(ctx context.Context, dev tfvDeviation) error {
 // 				panic("mock out the updateRoadAccidentStatus method")
@@ -49,8 +49,8 @@ type RoadAccidentSvcMock struct {
 	// getRoadAccidentsFromTFVFunc mocks the getRoadAccidentsFromTFV method.
 	getRoadAccidentsFromTFVFunc func(ctx context.Context, lastChangeID string) ([]byte, error)
 
-	// publishRoadAccidentsToContextBrokerFunc mocks the publishRoadAccidentsToContextBroker method.
-	publishRoadAccidentsToContextBrokerFunc func(ctx context.Context, dev tfvDeviation) error
+	// publishRoadAccidentToContextBrokerFunc mocks the publishRoadAccidentToContextBroker method.
+	publishRoadAccidentToContextBrokerFunc func(ctx context.Context, dev tfvDeviation) error
 
 	// updateRoadAccidentStatusFunc mocks the updateRoadAccidentStatus method.
 	updateRoadAccidentStatusFunc func(ctx context.Context, dev tfvDeviation) error
@@ -76,8 +76,8 @@ type RoadAccidentSvcMock struct {
 			// LastChangeID is the lastChangeID argument value.
 			LastChangeID string
 		}
-		// publishRoadAccidentsToContextBroker holds details about calls to the publishRoadAccidentsToContextBroker method.
-		publishRoadAccidentsToContextBroker []struct {
+		// publishRoadAccidentToContextBroker holds details about calls to the publishRoadAccidentToContextBroker method.
+		publishRoadAccidentToContextBroker []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Dev is the dev argument value.
@@ -94,7 +94,7 @@ type RoadAccidentSvcMock struct {
 	lockStart                               sync.RWMutex
 	lockgetAndPublishRoadAccidents          sync.RWMutex
 	lockgetRoadAccidentsFromTFV             sync.RWMutex
-	lockpublishRoadAccidentsToContextBroker sync.RWMutex
+	lockpublishRoadAccidentToContextBroker sync.RWMutex
 	lockupdateRoadAccidentStatus            sync.RWMutex
 }
 
@@ -199,10 +199,10 @@ func (mock *RoadAccidentSvcMock) getRoadAccidentsFromTFVCalls() []struct {
 	return calls
 }
 
-// publishRoadAccidentsToContextBroker calls publishRoadAccidentsToContextBrokerFunc.
-func (mock *RoadAccidentSvcMock) publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDeviation) error {
-	if mock.publishRoadAccidentsToContextBrokerFunc == nil {
-		panic("RoadAccidentSvcMock.publishRoadAccidentsToContextBrokerFunc: method is nil but RoadAccidentSvc.publishRoadAccidentsToContextBroker was just called")
+// publishRoadAccidentToContextBroker calls publishRoadAccidentToContextBrokerFunc.
+func (mock *RoadAccidentSvcMock) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation) error {
+	if mock.publishRoadAccidentToContextBrokerFunc == nil {
+		panic("RoadAccidentSvcMock.publishRoadAccidentToContextBrokerFunc: method is nil but RoadAccidentSvc.publishRoadAccidentToContextBroker was just called")
 	}
 	callInfo := struct {
 		Ctx context.Context
@@ -211,16 +211,16 @@ func (mock *RoadAccidentSvcMock) publishRoadAccidentsToContextBroker(ctx context
 		Ctx: ctx,
 		Dev: dev,
 	}
-	mock.lockpublishRoadAccidentsToContextBroker.Lock()
-	mock.calls.publishRoadAccidentsToContextBroker = append(mock.calls.publishRoadAccidentsToContextBroker, callInfo)
-	mock.lockpublishRoadAccidentsToContextBroker.Unlock()
-	return mock.publishRoadAccidentsToContextBrokerFunc(ctx, dev)
+	mock.lockpublishRoadAccidentToContextBroker.Lock()
+	mock.calls.publishRoadAccidentToContextBroker = append(mock.calls.publishRoadAccidentToContextBroker, callInfo)
+	mock.lockpublishRoadAccidentToContextBroker.Unlock()
+	return mock.publishRoadAccidentToContextBrokerFunc(ctx, dev)
 }
 
-// publishRoadAccidentsToContextBrokerCalls gets all the calls that were made to publishRoadAccidentsToContextBroker.
+// publishRoadAccidentToContextBrokerCalls gets all the calls that were made to publishRoadAccidentToContextBroker.
 // Check the length with:
-//     len(mockedRoadAccidentSvc.publishRoadAccidentsToContextBrokerCalls())
-func (mock *RoadAccidentSvcMock) publishRoadAccidentsToContextBrokerCalls() []struct {
+//     len(mockedRoadAccidentSvc.publishRoadAccidentToContextBrokerCalls())
+func (mock *RoadAccidentSvcMock) publishRoadAccidentToContextBrokerCalls() []struct {
 	Ctx context.Context
 	Dev tfvDeviation
 } {
@@ -228,9 +228,9 @@ func (mock *RoadAccidentSvcMock) publishRoadAccidentsToContextBrokerCalls() []st
 		Ctx context.Context
 		Dev tfvDeviation
 	}
-	mock.lockpublishRoadAccidentsToContextBroker.RLock()
-	calls = mock.calls.publishRoadAccidentsToContextBroker
-	mock.lockpublishRoadAccidentsToContextBroker.RUnlock()
+	mock.lockpublishRoadAccidentToContextBroker.RLock()
+	calls = mock.calls.publishRoadAccidentToContextBroker
+	mock.lockpublishRoadAccidentToContextBroker.RUnlock()
 	return calls
 }
 

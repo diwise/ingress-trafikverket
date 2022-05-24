@@ -29,7 +29,7 @@ func TestPublishingRoadAccidentsToContextBroker(t *testing.T) {
 		EndTime:   "2022-04-21T20:45:00.000+02:00",
 	}
 
-	err := ts.publishRoadAccidentsToContextBroker(context.Background(), dev)
+	err := ts.publishRoadAccidentToContextBroker(context.Background(), dev)
 	is.NoErr(err)
 }
 
@@ -62,7 +62,7 @@ func setupMockRoadAccident(t *testing.T, tfvCode int, tfvBody string, ctxCode in
 	is := is.New(t)
 	svcMock := setupMockServiceThatReturns(tfvCode, tfvBody)
 	ctxMock := setupMockServiceThatReturns(ctxCode, ctxBody)
-	ts := NewService("", svcMock.URL, ctxMock.URL)
+	ts := NewService("", svcMock.URL, "0", ctxMock.URL)
 
 	return is, ts
 }

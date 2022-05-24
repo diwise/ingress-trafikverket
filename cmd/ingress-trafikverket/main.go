@@ -24,6 +24,7 @@ func main() {
 
 	authenticationKey := env.GetVariableOrDie(logger, "TFV_API_AUTH_KEY", "API authentication key")
 	trafikverketURL := env.GetVariableOrDie(logger, "TFV_API_URL", "API URL")
+	countyCode := env.GetVariableOrDefault(logger, "TFV_COUNTY_CODE", "")
 	contextBrokerURL := env.GetVariableOrDie(logger, "CONTEXT_BROKER_URL", "context broker URL")
 
 	if featureIsEnabled(logger, "weather") {
@@ -32,7 +33,7 @@ func main() {
 	}
 
 	if featureIsEnabled(logger, "roadaccident") {
-		ts := roadaccidents.NewService(authenticationKey, trafikverketURL, contextBrokerURL)
+		ts := roadaccidents.NewService(authenticationKey, trafikverketURL, countyCode, contextBrokerURL)
 		go ts.Start(ctx)
 	}
 

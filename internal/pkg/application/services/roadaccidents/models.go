@@ -4,6 +4,10 @@ type tfvGeometry struct {
 	WGS84 string `json:"WGS84"`
 }
 
+const (
+	DeviationTypeRoadAccident string = "roadAccident"
+)
+
 type tfvDeviation struct {
 	Id        string      `json:"Id"`
 	IconId    string      `json:"IconId"`

@@ -24,11 +24,16 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) 
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
+	countyFilter := ""
+	if len(ts.countyCode) > 0 {
+		countyFilter = fmt.Sprintf("<EQ name=\"Deviation.CountyNo\" value=\"%s\" />", ts.countyCode)
+	}
+
 	requestBody := fmt.Sprintf(`<REQUEST>
 	<LOGIN authenticationkey="%s" />
-	<QUERY objecttype="Situation" schemaversion="1.2" changeid="%s" includedeletedobjects="true">
+	<QUERY objecttype="Situation" schemaversion="1.5" changeid="%s" includedeletedobjects="true">
 		  <FILTER>
-				<EQ name="Deviation.MessageType" value="Olycka" />
+			  <EQ name="Deviation.MessageType" value="Olycka" />%s
 		  </FILTER>
 		  <INCLUDE>Deviation.Id</INCLUDE>
 		  <INCLUDE>Deviation.StartTime</INCLUDE>
@@ -38,7 +43,7 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) 
 		  <INCLUDE>Deviation.Geometry.WGS84</INCLUDE>
 		  <INCLUDE>Deleted</INCLUDE>
 	</QUERY>
-</REQUEST>`, ts.authKey, lastChangeID)
+</REQUEST>`, ts.authKey, lastChangeID, countyFilter)
 
 	apiReq, err := http.NewRequestWithContext(ctx, http.MethodPost, ts.tfvURL, bytes.NewBufferString(requestBody))
 	if err != nil {

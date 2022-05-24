@@ -3,6 +3,7 @@ package roadaccidents
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
@@ -17,22 +18,24 @@ type RoadAccidentSvc interface {
 	Start(ctx context.Context) error
 	getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error)
 	getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) ([]byte, error)
-	publishRoadAccidentsToContextBroker(ctx context.Context, dev tfvDeviation) error
+	publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation) error
 	updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error
 }
 
 type ts struct {
 	authKey          string
 	tfvURL           string
+	countyCode       string
 	contextBrokerURL string
 }
 
 var tracer = otel.Tracer("roadaccidents")
 
-func NewService(authKey, tfvURL, contextBrokerURL string) RoadAccidentSvc {
+func NewService(authKey, tfvURL, countyCode, contextBrokerURL string) RoadAccidentSvc {
 	return &ts{
 		authKey:          authKey,
 		tfvURL:           tfvURL,
+		countyCode:       countyCode,
 		contextBrokerURL: contextBrokerURL,
 	}
 }
@@ -76,19 +79,17 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	for _, sitch := range tfvResp.Response.Result[0].Situation {
 		if !sitch.Deleted {
 			for _, dev := range sitch.Deviation {
-				_, exists := previousDeviations[dev.Id]
-				if exists {
-					log.Info().Msgf("road accident %s has already been sent to context broker, skipping", dev.Id)
-					continue
-				}
+				if dev.IconId == DeviationTypeRoadAccident {
+					err = ts.publishRoadAccidentToContextBroker(ctx, dev)
+					if err != nil && !errors.Is(err, ErrAlreadyExists) {
+						log.Error().Err(err).Msgf("failed to publish road accident %s", dev.Id)
+						continue
+					}
 
-				err = ts.publishRoadAccidentsToContextBroker(ctx, dev)
-				if err != nil {
-					log.Error().Err(err).Msgf("failed to publish road accident %s: %s", dev.Id, err.Error())
-					continue
+					previousDeviations[dev.Id] = dev.Id
+				} else {
+					log.Info().Msgf("ignoring deviation of type %s", dev.IconId)
 				}
-
-				previousDeviations[dev.Id] = dev.Id
 			}
 		} else {
 			for _, dev := range sitch.Deviation {
@@ -97,7 +98,7 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 				if exists {
 					err = ts.updateRoadAccidentStatus(ctx, dev)
 					if err != nil {
-						log.Error().Err(err).Msgf("failed to update road accident %s: %s", dev.Id, err.Error())
+						log.Error().Err(err).Msgf("failed to update road accident %s", dev.Id)
 						continue
 					}
 				}
@@ -105,7 +106,7 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 		}
 	}
 
-	return tfvResp.Response.Result[0].Info.LastChangeID, err
+	return tfvResp.Response.Result[0].Info.LastChangeID, nil
 }
 
 func addTraceIDToLoggerAndStoreInContext(span trace.Span, logger zerolog.Logger, ctx context.Context) (string, context.Context, zerolog.Logger) {
