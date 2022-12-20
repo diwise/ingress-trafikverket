@@ -5,25 +5,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
 )
-
-var tracer = otel.Tracer("tfv-weatherstation-client")
 
 func (ws *ws) getWeatherStationStatus(ctx context.Context, lastChangeID string) ([]byte, error) {
 	var err error
+
 	ctx, span := tracer.Start(ctx, "get-weatherstations")
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-		}
-		span.End()
-	}()
+	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
 	log := logging.GetFromContext(ctx)
 
@@ -52,7 +46,7 @@ func (ws *ws) getWeatherStationStatus(ctx context.Context, lastChangeID string) 
 
 	defer apiResponse.Body.Close()
 
-	responseBody, err := ioutil.ReadAll(apiResponse.Body)
+	responseBody, err := io.ReadAll(apiResponse.Body)
 
 	log.Info().Msgf("received response: " + string(responseBody))
 

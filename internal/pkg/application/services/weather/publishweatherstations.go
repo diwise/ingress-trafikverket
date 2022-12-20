@@ -11,10 +11,15 @@ import (
 
 	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
 	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error {
+	var err error
+
+	_, span := tracer.Start(ctx, "publish-weatherobservations")
+	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
 	position := weatherstation.Geometry.Position
 	position = position[7 : len(position)-1]
@@ -31,14 +36,6 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	if err != nil {
 		return err
 	}
-
-	ctx, span := tracer.Start(ctx, "publish-weatherstation")
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-		}
-		span.End()
-	}()
 
 	httpClient := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),

@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel"
 )
 
 type WeatherService interface {
@@ -40,13 +42,20 @@ func (ws *ws) Start(ctx context.Context) error {
 		lastChangeID, err = ws.getAndPublishWeatherStations(ctx, lastChangeID)
 		if err != nil {
 			ws.log.Error().Msg(err.Error())
-			return err
 		}
 		time.Sleep(30 * time.Second)
 	}
 }
 
+var tracer = otel.Tracer("tfv-weatherstation-client")
+
 func (ws *ws) getAndPublishWeatherStations(ctx context.Context, lastChangeID string) (string, error) {
+	var err error
+
+	ctx, span := tracer.Start(ctx, "get-and-publish-status")
+	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
+
+	_, ctx, log := o11y.AddTraceIDToLoggerAndStoreInContext(span, ws.log, ctx)
 
 	responseBody, err := ws.getWeatherStationStatus(ctx, lastChangeID)
 	if err != nil {
@@ -62,7 +71,7 @@ func (ws *ws) getAndPublishWeatherStations(ctx context.Context, lastChangeID str
 	for _, weatherstation := range answer.Response.Result[0].WeatherStations {
 		err = ws.publishWeatherStationStatus(ctx, weatherstation)
 		if err != nil {
-			log.Error().Msgf("unable to publish data for weatherstation %s: %s", weatherstation.ID, err.Error())
+			log.Error().Err(err).Msgf("unable to publish data for weatherstation %s", weatherstation.ID)
 		}
 	}
 
