@@ -1,4 +1,4 @@
-FROM golang:1.18 AS builder
+FROM golang:1.19 AS builder
 
 
 # Set the Current Working Directory inside the container
@@ -11,10 +11,8 @@ RUN go mod download
 
 COPY . .
 
-
 WORKDIR /app/cmd/ingress-trafikverket
 
-RUN go test -v ./...
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
 
