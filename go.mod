@@ -4,7 +4,9 @@ go 1.19
 
 require (
 	github.com/diwise/ngsi-ld-golang v0.0.0-20220518083256-2e7d28ad5f2e
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/matryer/is v1.4.0
+	github.com/rs/cors v1.8.2
 	github.com/rs/zerolog v1.28.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.37.0
 	go.opentelemetry.io/otel v1.11.2
@@ -14,7 +16,6 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/go-chi/chi/v5 v5.0.8 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
