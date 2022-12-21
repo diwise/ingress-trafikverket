@@ -2,24 +2,31 @@ package weathersvc
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/diwise/context-broker/pkg/ngsild"
+	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
+	"github.com/diwise/context-broker/pkg/ngsild/types"
+	test "github.com/diwise/context-broker/pkg/test"
 	"github.com/matryer/is"
 	"github.com/rs/zerolog"
 )
 
 func TestWeather(t *testing.T) {
-	is, ws := setupMockWeatherService(t, http.StatusOK, responseJSON, http.StatusNoContent, "")
+	is, ctxbroker, ws := setupMockWeatherService(t, http.StatusOK, responseJSON, http.StatusNoContent, "")
 
 	_, err := ws.getAndPublishWeatherStations(context.Background(), "")
 
 	is.NoErr(err)
+	is.Equal(len(ctxbroker.MergeEntityCalls()), 8)  // should first attempt to merge all weather stations
+	is.Equal(len(ctxbroker.CreateEntityCalls()), 8) // create should equal the merge attempts, as each weatherstation is unknown
 }
 
 func TestGetWeatherStationStatus(t *testing.T) {
-	is, ws := setupMockWeatherService(t, http.StatusOK, responseJSON, 0, "")
+	is, _, ws := setupMockWeatherService(t, http.StatusOK, responseJSON, 0, "")
 
 	_, err := ws.getWeatherStationStatus(context.Background(), "")
 
@@ -27,7 +34,7 @@ func TestGetWeatherStationStatus(t *testing.T) {
 }
 
 func TestGetWeatherStationStatusFail(t *testing.T) {
-	is, ws := setupMockWeatherService(t, http.StatusUnauthorized, "", 0, "")
+	is, _, ws := setupMockWeatherService(t, http.StatusUnauthorized, "", 0, "")
 
 	_, err := ws.getWeatherStationStatus(context.Background(), "")
 
@@ -35,7 +42,7 @@ func TestGetWeatherStationStatusFail(t *testing.T) {
 }
 
 func TestPublishWeatherStationStatus(t *testing.T) {
-	is, ws := setupMockWeatherService(t, 0, "", http.StatusNoContent, "")
+	is, ctxbroker, ws := setupMockWeatherService(t, 0, "", http.StatusNoContent, "")
 
 	weather := weatherStation{
 		ID:          "123",
@@ -45,17 +52,26 @@ func TestPublishWeatherStationStatus(t *testing.T) {
 	}
 
 	err := ws.publishWeatherStationStatus(context.Background(), weather)
-
 	is.NoErr(err)
+
+	is.Equal(len(ctxbroker.MergeEntityCalls()), 1)  // first attempt to merge
+	is.Equal(len(ctxbroker.CreateEntityCalls()), 1) // on failure to merge due to not found error, should create instead
 }
 
-func setupMockWeatherService(t *testing.T, tfvStatusCode int, tfvBody string, contextBrokerCode int, contextBrokerBody string) (*is.I, WeatherService) {
+func setupMockWeatherService(t *testing.T, tfvStatusCode int, tfvBody string, contextBrokerCode int, contextBrokerBody string) (*is.I, *test.ContextBrokerClientMock, WeatherService) {
 	is := is.New(t)
 	tfvMock := setupMockServiceThatReturns(tfvStatusCode, responseJSON)
-	ctxBrokerMock := setupMockServiceThatReturns(contextBrokerCode, contextBrokerBody)
-	ws := NewWeatherService(zerolog.Logger{}, "", tfvMock.URL, ctxBrokerMock.URL)
+	ctxBroker := &test.ContextBrokerClientMock{
+		CreateEntityFunc: func(ctx context.Context, entity types.Entity, headers map[string][]string) (*ngsild.CreateEntityResult, error) {
+			return nil, fmt.Errorf("not implemented")
+		},
+		MergeEntityFunc: func(ctx context.Context, entityID string, fragment types.EntityFragment, headers map[string][]string) (*ngsild.MergeEntityResult, error) {
+			return nil, ngsierrors.ErrNotFound
+		},
+	}
+	ws := NewWeatherService(zerolog.Logger{}, "", tfvMock.URL, "http://notreal:123", ctxBroker)
 
-	return is, ws
+	return is, ctxBroker, ws
 }
 
 func setupMockServiceThatReturns(statusCode int, body string) *httptest.Server {

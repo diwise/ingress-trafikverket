@@ -59,6 +59,8 @@ github.com/coreos/go-systemd/v22 v22.3.2/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSV
 github.com/coreos/go-systemd/v22 v22.3.3-0.20220203105225-a9a7ef127534/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
+github.com/diwise/context-broker v0.0.0-20221221092621-9f3b4f349f72 h1:kFJCalDiTdyMAAWTsyXhcLk76SvZPwBYslGvJ7SkaiU=
+github.com/diwise/context-broker v0.0.0-20221221092621-9f3b4f349f72/go.mod h1:cQjuo44u5/qM4+jpx3GlIAF6B7eGSzpWMGFMHoq/xvU=
 github.com/diwise/ngsi-ld-golang v0.0.0-20220518083256-2e7d28ad5f2e h1:J1d9tsocRRw33wwxS87/Gw1Cuco4ItJnycznVRQoRZ0=
 github.com/diwise/ngsi-ld-golang v0.0.0-20220518083256-2e7d28ad5f2e/go.mod h1:rJEtJBmPwq3c+0leOb2Zy/u/Z9eTIT8RJQFyGJzoMrM=
 github.com/diwise/service-chassis v0.0.0-20221209133941-0250677afa17 h1:Nt29NflPOGokGUlSUU5EdWq6P7M/iMTJ8FKo2paOXuw=
