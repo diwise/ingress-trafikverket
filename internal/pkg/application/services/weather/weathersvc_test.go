@@ -50,7 +50,7 @@ func TestPublishWeatherStationStatus(t *testing.T) {
 	weather := weatherStation{
 		ID:          "123",
 		Name:        "ABC",
-		Geometry:    geometry{Position: "POINT (17.345039367675781 62.276519775390625"},
+		Geometry:    geometry{Position: "POINT (17.345039367675781 62.276519775390625)"},
 		Measurement: measurement{Air: air{12.0}, MeasureTime: "2020-03-16T08:15:50.156Z"},
 	}
 
@@ -68,7 +68,7 @@ func TestPublishWeatherStationConvertsTimeProperly(t *testing.T) {
 	weather := weatherStation{
 		ID:          "123",
 		Name:        "ABC",
-		Geometry:    geometry{Position: "POINT (17.345039367675781 62.276519775390625"},
+		Geometry:    geometry{Position: "POINT (17.345039367675781 62.276519775390625)"},
 		Measurement: measurement{Air: air{12.0}, MeasureTime: "2020-03-16T09:10:00.000+01:00"},
 	}
 
@@ -78,9 +78,9 @@ func TestPublishWeatherStationConvertsTimeProperly(t *testing.T) {
 	e := ctxbroker.CreateEntityCalls()[0].Entity
 	eBytes, _ := e.MarshalJSON()
 
-	fmt.Printf(string(eBytes))
+	dateObserved := `"dateObserved":{"type":"Property","value":{"@type":"DateTime","@value":"2020-03-16T08:10:00Z"}}`
 
-	is.True(strings.Contains(string(eBytes), "cascsacas"))
+	is.True(strings.Contains(string(eBytes), dateObserved))
 }
 
 func setupMockWeatherService(t *testing.T, tfvStatusCode int, tfvBody string) (*is.I, *test.ContextBrokerClientMock, WeatherService) {

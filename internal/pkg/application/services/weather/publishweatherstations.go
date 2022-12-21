@@ -3,8 +3,10 @@ package weathersvc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/diwise/context-broker/pkg/datamodels/fiware"
 	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
@@ -19,7 +21,10 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	_, span := tracer.Start(ctx, "publish-weatherobservations")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	attributes := convertWeatherStationToFiwareEntity(weatherstation)
+	attributes, err := convertWeatherStationToFiwareEntity(weatherstation)
+	if err != nil {
+		ws.log.Error().Err(err).Msgf("could not create attributes for weatherstation")
+	}
 
 	fragment, _ := entities.NewFragment(attributes...)
 	entityID := fiware.WeatherObservedIDPrefix + "se:trafikverket:temp:" + weatherstation.ID
@@ -45,7 +50,7 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	return nil
 }
 
-func convertWeatherStationToFiwareEntity(ws weatherStation) []entities.EntityDecoratorFunc {
+func convertWeatherStationToFiwareEntity(ws weatherStation) ([]entities.EntityDecoratorFunc, error) {
 	position := ws.Geometry.Position
 	position = position[7 : len(position)-1]
 
@@ -54,12 +59,29 @@ func convertWeatherStationToFiwareEntity(ws weatherStation) []entities.EntityDec
 	Latitude := strings.Split(position, " ")[1]
 	newLat, _ := strconv.ParseFloat(Latitude, 32)
 
+	convertedTime, err := convertTimeToRFC3339Format(ws.Measurement.MeasureTime)
+	if err != nil {
+		return nil, err
+	}
+
 	attributes := append(
-		make([]entities.EntityDecoratorFunc, 0, 2),
+		make([]entities.EntityDecoratorFunc, 0, 3),
 		decorators.Location(newLat, newLong),
 		decorators.Temperature(ws.Measurement.Air.Temp),
-		decorators.DateObserved(ws.Measurement.MeasureTime),
+		decorators.DateObserved(convertedTime),
 	)
 
-	return attributes
+	return attributes, nil
+}
+
+func convertTimeToRFC3339Format(timestring string) (string, error) {
+	layout := "2006-01-02T15:04:05.999-07:00"
+	parsedTime, err := time.Parse(layout, timestring)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse time from string: %s", err.Error())
+	}
+
+	formattedTime := parsedTime.UTC().Format(time.RFC3339)
+
+	return formattedTime, nil
 }
