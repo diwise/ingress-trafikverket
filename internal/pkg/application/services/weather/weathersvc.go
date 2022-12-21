@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/diwise/context-broker/pkg/ngsild/client"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"github.com/rs/zerolog"
@@ -18,12 +19,12 @@ type WeatherService interface {
 	publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error
 }
 
-func NewWeatherService(log zerolog.Logger, authKey, trafikverketURL, contextBrokerURL string) WeatherService {
+func NewWeatherService(log zerolog.Logger, authKey, trafikverketURL string, ctxBrokerClient client.ContextBrokerClient) WeatherService {
 	return &ws{
 		log:               log,
 		authenticationKey: authKey,
 		trafikverketURL:   trafikverketURL,
-		contextBrokerURL:  contextBrokerURL,
+		ctxBrokerClient:   ctxBrokerClient,
 	}
 }
 
@@ -31,7 +32,7 @@ type ws struct {
 	log               zerolog.Logger
 	authenticationKey string
 	trafikverketURL   string
-	contextBrokerURL  string
+	ctxBrokerClient   client.ContextBrokerClient
 }
 
 func (ws *ws) Start(ctx context.Context) error {

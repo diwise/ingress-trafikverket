@@ -33,6 +33,7 @@ require (
 
 require (
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
+	github.com/diwise/context-broker v0.0.0-20221221092621-9f3b4f349f72
 	github.com/diwise/service-chassis v0.0.0-20221209133941-0250677afa17
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect

@@ -1,18 +1,18 @@
 package weathersvc
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
-	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
+	"github.com/diwise/context-broker/pkg/datamodels/fiware"
+	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
+	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
+	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error {
@@ -21,7 +21,37 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	_, span := tracer.Start(ctx, "publish-weatherobservations")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	position := weatherstation.Geometry.Position
+	attributes, err := convertWeatherStationToFiwareEntity(weatherstation)
+	if err != nil {
+		ws.log.Error().Err(err).Msgf("could not create attributes for weatherstation")
+	}
+
+	fragment, _ := entities.NewFragment(attributes...)
+	entityID := fiware.WeatherObservedIDPrefix + "se:trafikverket:temp:" + weatherstation.ID
+
+	headers := map[string][]string{"Content-Type": {"application/ld+json"}}
+
+	_, err = ws.ctxBrokerClient.MergeEntity(ctx, entityID, fragment, headers)
+	if err != nil {
+		if !errors.Is(err, ngsierrors.ErrNotFound) {
+			ws.log.Error().Err(err).Msg("failed to merge entity")
+		}
+		entity, err := entities.New(entityID, fiware.WeatherObservedTypeName, attributes...)
+		if err != nil {
+			ws.log.Error().Err(err).Msg("entities.New failed")
+		}
+
+		_, err = ws.ctxBrokerClient.CreateEntity(ctx, entity, headers)
+		if err != nil {
+			ws.log.Error().Err(err).Msg("failed to post weather observed to context broker")
+		}
+	}
+
+	return nil
+}
+
+func convertWeatherStationToFiwareEntity(ws weatherStation) ([]entities.EntityDecoratorFunc, error) {
+	position := ws.Geometry.Position
 	position = position[7 : len(position)-1]
 
 	Longitude := strings.Split(position, " ")[0]
@@ -29,30 +59,29 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	Latitude := strings.Split(position, " ")[1]
 	newLat, _ := strconv.ParseFloat(Latitude, 32)
 
-	device := fiware.NewDevice("se:trafikverket:temp:"+weatherstation.ID, fmt.Sprintf("t=%.1f", weatherstation.Measurement.Air.Temp))
-	device.Location = geojson.CreateGeoJSONPropertyFromWGS84(newLong, newLat)
-
-	patchBody, err := json.Marshal(device)
+	convertedTime, err := convertTimeToRFC3339Format(ws.Measurement.MeasureTime)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	httpClient := http.Client{
-		Transport: otelhttp.NewTransport(http.DefaultTransport),
-	}
+	attributes := append(
+		make([]entities.EntityDecoratorFunc, 0, 3),
+		decorators.Location(newLat, newLong),
+		decorators.Temperature(ws.Measurement.Air.Temp),
+		decorators.DateObserved(convertedTime),
+	)
 
-	url := fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs/", ws.contextBrokerURL, device.ID)
+	return attributes, nil
+}
 
-	req, _ := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(patchBody))
-
-	resp, err := httpClient.Do(req)
+func convertTimeToRFC3339Format(timestring string) (string, error) {
+	layout := "2006-01-02T15:04:05.999-07:00"
+	parsedTime, err := time.Parse(layout, timestring)
 	if err != nil {
-		return err
+		return "", fmt.Errorf("failed to parse time from string: %s", err.Error())
 	}
 
-	if resp.StatusCode != http.StatusNoContent {
-		return err
-	}
+	formattedTime := parsedTime.UTC().Format(time.RFC3339)
 
-	return nil
+	return formattedTime, nil
 }
