@@ -9,7 +9,7 @@ import (
 	"github.com/diwise/context-broker/pkg/datamodels/fiware"
 	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
-	. "github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
+	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 )
 
@@ -18,12 +18,13 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 
 	_, span := tracer.Start(ctx, "publish-weatherobservations")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
-	headers := map[string][]string{"Content-Type": {"application/ld+json"}}
 
-	attributes := convertWeatherStationToFiwareWeatherStation(weatherstation)
+	attributes := convertWeatherStationToFiwareEntity(weatherstation)
 
 	fragment, _ := entities.NewFragment(attributes...)
 	entityID := fiware.WeatherObservedIDPrefix + "se:trafikverket:temp:" + weatherstation.ID
+
+	headers := map[string][]string{"Content-Type": {"application/ld+json"}}
 
 	_, err = ws.ctxBrokerClient.MergeEntity(ctx, entityID, fragment, headers)
 	if err != nil {
@@ -37,14 +38,14 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 
 		_, err = ws.ctxBrokerClient.CreateEntity(ctx, entity, headers)
 		if err != nil {
-			ws.log.Error().Err(err).Msg("failed to post sports venue to context broker")
+			ws.log.Error().Err(err).Msg("failed to post weather observed to context broker")
 		}
 	}
 
 	return nil
 }
 
-func convertWeatherStationToFiwareWeatherStation(ws weatherStation) []entities.EntityDecoratorFunc {
+func convertWeatherStationToFiwareEntity(ws weatherStation) []entities.EntityDecoratorFunc {
 	position := ws.Geometry.Position
 	position = position[7 : len(position)-1]
 
@@ -53,12 +54,12 @@ func convertWeatherStationToFiwareWeatherStation(ws weatherStation) []entities.E
 	Latitude := strings.Split(position, " ")[1]
 	newLat, _ := strconv.ParseFloat(Latitude, 32)
 
-	decorators := append(
-		make([]entities.EntityDecoratorFunc, 0, 8),
-		Name(ws.Name),
-		Location(newLat, newLong),
-		Temperature(ws.Measurement.Air.Temp),
+	attributes := append(
+		make([]entities.EntityDecoratorFunc, 0, 2),
+		decorators.Location(newLat, newLong),
+		decorators.Temperature(ws.Measurement.Air.Temp),
+		decorators.DateObserved(ws.Measurement.MeasureTime),
 	)
 
-	return decorators
+	return attributes
 }

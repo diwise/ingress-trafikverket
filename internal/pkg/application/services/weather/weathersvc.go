@@ -19,12 +19,11 @@ type WeatherService interface {
 	publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error
 }
 
-func NewWeatherService(log zerolog.Logger, authKey, trafikverketURL, contextBrokerURL string, ctxBrokerClient client.ContextBrokerClient) WeatherService {
+func NewWeatherService(log zerolog.Logger, authKey, trafikverketURL string, ctxBrokerClient client.ContextBrokerClient) WeatherService {
 	return &ws{
 		log:               log,
 		authenticationKey: authKey,
 		trafikverketURL:   trafikverketURL,
-		contextBrokerURL:  contextBrokerURL,
 		ctxBrokerClient:   ctxBrokerClient,
 	}
 }
@@ -33,7 +32,6 @@ type ws struct {
 	log               zerolog.Logger
 	authenticationKey string
 	trafikverketURL   string
-	contextBrokerURL  string
 	ctxBrokerClient   client.ContextBrokerClient
 }
 

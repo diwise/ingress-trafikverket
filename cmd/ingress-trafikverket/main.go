@@ -33,7 +33,7 @@ func main() {
 	ctxBrokerClient := client.NewContextBrokerClient(contextBrokerURL, client.Debug("true"))
 
 	if featureIsEnabled(logger, "weather") {
-		ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL, ctxBrokerClient)
+		ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, ctxBrokerClient)
 		go ws.Start(ctx)
 	}
 
