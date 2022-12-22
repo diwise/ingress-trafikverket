@@ -25,7 +25,7 @@ func (ws *ws) getWeatherStationStatus(ctx context.Context, lastChangeID string) 
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
-	requestBody := fmt.Sprintf("<REQUEST><LOGIN authenticationkey=\"%s\" /><QUERY objecttype=\"WeatherStation\" schemaversion=\"1\" changeid=\"%s\"><INCLUDE>Id</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE><INCLUDE>Measurement.Air.Temp</INCLUDE><INCLUDE>Measurement.MeasureTime</INCLUDE><INCLUDE>ModifiedTime</INCLUDE><INCLUDE>Name</INCLUDE><FILTER><WITHIN name=\"Geometry.SWEREF99TM\" shape=\"box\" value=\"527000 6879000, 652500 6950000\" /></FILTER></QUERY></REQUEST>", ws.authenticationKey, lastChangeID)
+	requestBody := fmt.Sprintf("<REQUEST><LOGIN authenticationkey=\"%s\" /><QUERY objecttype=\"WeatherStation\" schemaversion=\"1\" changeid=\"%s\"><INCLUDE>Active</INCLUDE><INCLUDE>Id</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE><INCLUDE>Measurement.Air.RelativeHumidity</INCLUDE><INCLUDE>Measurement.Air.Temp</INCLUDE><INCLUDE>Measurement.Precipitation.Amount</INCLUDE><INCLUDE>Measurement.Wind.Direction</INCLUDE><INCLUDE>Measurement.Wind.Force</INCLUDE><INCLUDE>Measurement.Wind.ForceMax</INCLUDE><INCLUDE>Measurement.MeasureTime</INCLUDE><INCLUDE>ModifiedTime</INCLUDE><INCLUDE>Name</INCLUDE><FILTER><WITHIN name=\"Geometry.SWEREF99TM\" shape=\"box\" value=\"527000 6879000, 652500 6950000\" /></FILTER></QUERY></REQUEST>", ws.authenticationKey, lastChangeID)
 
 	apiReq, err := http.NewRequestWithContext(ctx, http.MethodPost, ws.trafikverketURL, bytes.NewBufferString(requestBody))
 	if err != nil {

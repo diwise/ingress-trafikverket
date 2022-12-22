@@ -12,6 +12,7 @@ import (
 	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
+	"github.com/diwise/context-broker/pkg/ngsild/types/properties"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 )
 
@@ -65,11 +66,21 @@ func convertWeatherStationToFiwareEntity(ws weatherStation) ([]entities.EntityDe
 	}
 
 	attributes := append(
-		make([]entities.EntityDecoratorFunc, 0, 3),
+		make([]entities.EntityDecoratorFunc, 0, 7),
 		decorators.Location(newLat, newLong),
-		decorators.Temperature(ws.Measurement.Air.Temp),
+		decorators.Name(ws.Name),
+		number("temperature", ws.Measurement.Air.Temp, convertedTime),
+		number("humidity", ws.Measurement.Air.RelativeHumidity/100.0, convertedTime),
 		decorators.DateObserved(convertedTime),
 	)
+
+	if ws.Measurement.Wind.Direction != 0 || ws.Measurement.Wind.Force > 0.01 {
+		attributes = append(
+			attributes,
+			number("windDirection", float64(ws.Measurement.Wind.Direction), convertedTime),
+			number("windSpeed", ws.Measurement.Wind.Force, convertedTime),
+		)
+	}
 
 	return attributes, nil
 }
@@ -84,4 +95,8 @@ func convertTimeToRFC3339Format(timestring string) (string, error) {
 	formattedTime := parsedTime.UTC().Format(time.RFC3339)
 
 	return formattedTime, nil
+}
+
+func number(property string, value float64, at string) entities.EntityDecoratorFunc {
+	return decorators.Number(property, value, properties.ObservedAt(at))
 }

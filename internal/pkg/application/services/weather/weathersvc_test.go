@@ -51,7 +51,7 @@ func TestPublishWeatherStationStatus(t *testing.T) {
 		ID:          "123",
 		Name:        "ABC",
 		Geometry:    geometry{Position: "POINT (17.345039367675781 62.276519775390625)"},
-		Measurement: measurement{Air: air{12.0}, MeasureTime: "2020-03-16T08:15:50.156Z"},
+		Measurement: measurement{Air: air{12.0, 86.5}, MeasureTime: "2020-03-16T08:15:50.156Z"},
 	}
 
 	err := ws.publishWeatherStationStatus(context.Background(), weather)
@@ -69,7 +69,7 @@ func TestPublishWeatherStationConvertsTimeProperly(t *testing.T) {
 		ID:          "123",
 		Name:        "ABC",
 		Geometry:    geometry{Position: "POINT (17.345039367675781 62.276519775390625)"},
-		Measurement: measurement{Air: air{12.0}, MeasureTime: "2020-03-16T09:10:00.000+01:00"},
+		Measurement: measurement{Air: air{12.0, 92.0}, MeasureTime: "2020-03-16T09:10:00.000+01:00"},
 	}
 
 	err := ws.publishWeatherStationStatus(context.Background(), weather)
