@@ -25,6 +25,7 @@ func NewWeatherService(log zerolog.Logger, authKey, trafikverketURL string, ctxB
 		authenticationKey: authKey,
 		trafikverketURL:   trafikverketURL,
 		ctxBrokerClient:   ctxBrokerClient,
+		stations:          map[string]string{},
 	}
 }
 
@@ -33,6 +34,7 @@ type ws struct {
 	authenticationKey string
 	trafikverketURL   string
 	ctxBrokerClient   client.ContextBrokerClient
+	stations          map[string]string
 }
 
 func (ws *ws) Start(ctx context.Context) error {
@@ -70,9 +72,18 @@ func (ws *ws) getAndPublishWeatherStations(ctx context.Context, lastChangeID str
 	}
 
 	for _, weatherstation := range answer.Response.Result[0].WeatherStations {
-		err = ws.publishWeatherStationStatus(ctx, weatherstation)
-		if err != nil {
-			log.Error().Err(err).Msgf("unable to publish data for weatherstation %s", weatherstation.ID)
+		if weatherstation.Active {
+			previousMeasureTime, ok := ws.stations[weatherstation.ID]
+			if ok && previousMeasureTime == weatherstation.Measurement.MeasureTime {
+				continue
+			}
+
+			ws.stations[weatherstation.ID] = weatherstation.Measurement.MeasureTime
+
+			err = ws.publishWeatherStationStatus(ctx, weatherstation)
+			if err != nil {
+				log.Error().Err(err).Msgf("unable to publish data for weatherstation %s", weatherstation.ID)
+			}
 		}
 	}
 
