@@ -35,7 +35,7 @@ func (ts *ts) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) er
 		return err
 	}
 
-	cbUrl := fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs/", ts.contextBrokerURL, url.QueryEscape(ra.ID))
+	cbUrl := fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs/", "", url.QueryEscape(ra.ID))
 
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPatch, cbUrl, bytes.NewBuffer(patchBody))
 	req.Header.Add("Content-Type", "application/ld+json")

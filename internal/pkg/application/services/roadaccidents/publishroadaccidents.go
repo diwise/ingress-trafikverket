@@ -1,23 +1,18 @@
 package roadaccidents
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
+	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
+	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
 	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
-	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
-	ngsitypes "github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/types"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var ErrAlreadyExists = errors.New("already exists")
@@ -29,71 +24,58 @@ func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDev
 
 	logger := logging.GetFromContext(ctx)
 
-	httpClient := http.Client{
-		Transport: otelhttp.NewTransport(http.DefaultTransport),
-	}
-
-	ra := fiware.NewRoadAccident(dev.Id)
-	if dev.StartTime != "" {
-		t, _ := time.Parse(time.RFC3339, dev.StartTime)
-		utcTime := t.UTC().Format(time.RFC3339)
-
-		ra.AccidentDate = *ngsitypes.CreateDateTimeProperty(utcTime)
-		ra.DateCreated = ra.AccidentDate
-	}
-
-	if dev.Geometry.WGS84 != "" {
-		ra.Location = getLocationFromString(dev.Geometry.WGS84)
-	}
-
-	ra.Description = *ngsitypes.NewTextProperty(dev.Message)
-	ra.Status = *ngsitypes.NewTextProperty("onGoing")
-
-	requestBody, err := json.Marshal(ra)
+	attributes, err := convertRoadAccidentToFiwareEntity(dev)
 	if err != nil {
-		return err
+		logger.Error().Err(err).Msg("")
 	}
 
-	cbUrl := fmt.Sprintf("%s/ngsi-ld/v1/entities", ts.contextBrokerURL)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, cbUrl, bytes.NewBuffer(requestBody))
-	req.Header.Add("Content-Type", "application/ld+json")
+	fragment, _ := entities.NewFragment(attributes...)
+	entityID := fiware.RoadAccidentIDPrefix + dev.Id
 
-	resp, err := httpClient.Do(req)
+	headers := map[string][]string{"Content-Type": {"application/ld+json"}}
+
+	_, err = ts.ctxBroker.MergeEntity(ctx, entityID, fragment, headers)
 	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusCreated {
-		if resp.StatusCode != http.StatusConflict {
-			errMsg := fmt.Sprintf("failed to send road accident to context broker, expected status code %d, but got %d", http.StatusOK, resp.StatusCode)
-			return errors.New(errMsg)
+		if err != ngsierrors.ErrNotFound {
+			logger.Error().Err(err).Msg("failed to merge entity")
 		}
-
-		cbUrl = fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs/", ts.contextBrokerURL, url.QueryEscape(ra.ID))
-		req, _ := http.NewRequestWithContext(ctx, http.MethodPatch, cbUrl, bytes.NewBuffer(requestBody))
-		req.Header.Add("Content-Type", "application/ld+json")
-
-		resp, err = httpClient.Do(req)
+		entity, err := entities.New(entityID, fiware.RoadAccidentTypeName, attributes...)
 		if err != nil {
-			return err
+			logger.Error().Err(err).Msg("entities.New failed")
 		}
 
-		if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusMultiStatus {
-			errMsg := fmt.Sprintf("failed to update road accident in context broker, expected status code %d, but got %d", http.StatusNoContent, resp.StatusCode)
-			return errors.New(errMsg)
+		_, err = ts.ctxBroker.CreateEntity(ctx, entity, headers)
+		if err != nil {
+			logger.Error().Err(err).Msg("failed to post road accident to context broker")
 		}
-
-		logger.Info().Msgf("updated road accident %s in context broker: %s", ra.ID, string(requestBody))
-
-		return nil
 	}
 
-	logger.Info().Msgf("published road accident %s to context broker: %s", ra.ID, string(requestBody))
-
-	return err
+	return nil
 }
 
-func getLocationFromString(location string) *geojson.GeoJSONProperty {
+func convertRoadAccidentToFiwareEntity(ra tfvDeviation) ([]entities.EntityDecoratorFunc, error) {
+
+	attributes := append(
+		make([]entities.EntityDecoratorFunc, 0, 2),
+		decorators.Description(ra.Message),
+		decorators.Text("status", "onGoing"),
+	)
+
+	if ra.Geometry.WGS84 != "" {
+		lat, lon := getLocationFromString(ra.Geometry.WGS84)
+		attributes = append(attributes, decorators.Location(lat, lon))
+	}
+
+	if ra.StartTime != "" {
+		t, _ := time.Parse(time.RFC3339, ra.StartTime)
+		utcTime := t.UTC().Format(time.RFC3339)
+		attributes = append(attributes, decorators.DateCreated(utcTime), decorators.DateTime("accidentDate", utcTime))
+	}
+
+	return attributes, nil
+}
+
+func getLocationFromString(location string) (lat float64, lon float64) {
 	position := location[7 : len(location)-1]
 
 	Longitude := strings.Split(position, " ")[0]
@@ -101,5 +83,5 @@ func getLocationFromString(location string) *geojson.GeoJSONProperty {
 	Latitude := strings.Split(position, " ")[1]
 	newLat, _ := strconv.ParseFloat(Latitude, 32)
 
-	return geojson.CreateGeoJSONPropertyFromWGS84(newLong, newLat)
+	return newLat, newLong
 }

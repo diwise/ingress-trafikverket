@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/diwise/context-broker/pkg/ngsild/client"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"github.com/rs/zerolog"
@@ -23,20 +24,20 @@ type RoadAccidentSvc interface {
 }
 
 type ts struct {
-	authKey          string
-	tfvURL           string
-	countyCode       string
-	contextBrokerURL string
+	authKey    string
+	tfvURL     string
+	countyCode string
+	ctxBroker  client.ContextBrokerClient
 }
 
 var tracer = otel.Tracer("roadaccidents")
 
-func NewService(authKey, tfvURL, countyCode, contextBrokerURL string) RoadAccidentSvc {
+func NewService(authKey, tfvURL, countyCode string, ctxBroker client.ContextBrokerClient) RoadAccidentSvc {
 	return &ts{
-		authKey:          authKey,
-		tfvURL:           tfvURL,
-		countyCode:       countyCode,
-		contextBrokerURL: contextBrokerURL,
+		authKey:    authKey,
+		tfvURL:     tfvURL,
+		countyCode: countyCode,
+		ctxBroker:  ctxBroker,
 	}
 }
 
@@ -77,7 +78,7 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	}
 
 	for _, sitch := range tfvResp.Response.Result[0].Situation {
-		if !sitch.Deleted {
+		if !sitch.Deleted { // check if this if can be moved into publishRoadAccidentToContextBroker with the new pattern of attempting merge before create.
 			for _, dev := range sitch.Deviation {
 				if dev.IconId == DeviationTypeRoadAccident {
 					err = ts.publishRoadAccidentToContextBroker(ctx, dev)
