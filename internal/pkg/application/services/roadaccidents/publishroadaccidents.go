@@ -14,16 +14,16 @@ import (
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 )
 
-func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation) error {
+func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation, deleted bool) error {
 	var err error
 	ctx, span := tracer.Start(ctx, "publish-to-broker")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
 	logger := logging.GetFromContext(ctx)
 
-	attributes, err := convertRoadAccidentToFiwareEntity(dev)
+	attributes, err := convertRoadAccidentToFiwareEntity(dev, deleted)
 	if err != nil {
-		logger.Error().Err(err).Msg("")
+		logger.Error().Err(err).Msg("failed to create attribute for fiware entity")
 	}
 
 	fragment, _ := entities.NewFragment(attributes...)
@@ -50,11 +50,16 @@ func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDev
 	return nil
 }
 
-func convertRoadAccidentToFiwareEntity(ra tfvDeviation) ([]entities.EntityDecoratorFunc, error) {
+func convertRoadAccidentToFiwareEntity(ra tfvDeviation, deleted bool) ([]entities.EntityDecoratorFunc, error) {
+	status := map[bool]string{
+		true:  "solved",
+		false: "onGoing",
+	}
+
 	attributes := append(
 		make([]entities.EntityDecoratorFunc, 0, 2),
 		decorators.Description(ra.Message),
-		decorators.Text("status", "onGoing"),
+		decorators.Status(status[deleted]),
 	)
 
 	if ra.Geometry.WGS84 != "" {
@@ -66,6 +71,10 @@ func convertRoadAccidentToFiwareEntity(ra tfvDeviation) ([]entities.EntityDecora
 		t, _ := time.Parse(time.RFC3339, ra.StartTime)
 		utcTime := t.UTC().Format(time.RFC3339)
 		attributes = append(attributes, decorators.DateCreated(utcTime), decorators.DateTime("accidentDate", utcTime))
+	}
+
+	if deleted {
+		attributes = append(attributes, decorators.DateModified(time.Now().UTC().Format(time.RFC3339)))
 	}
 
 	return attributes, nil

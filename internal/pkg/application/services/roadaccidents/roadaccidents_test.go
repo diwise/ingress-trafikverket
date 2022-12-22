@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/diwise/context-broker/pkg/ngsild"
@@ -17,14 +18,15 @@ import (
 )
 
 func TestRetrievingRoadAccidentsFromTFV(t *testing.T) {
-	is, _, ts := setupMockRoadAccident(t, http.StatusOK, tfvResponseJSON)
+	is, cb, ts := setupMockRoadAccident(t, http.StatusOK, tfvResponseJSON)
 
 	_, err := ts.getRoadAccidentsFromTFV(context.Background(), "")
 	is.NoErr(err)
+	is.Equal(len(cb.MergeEntityCalls()), 0)
 }
 
 func TestPublishingRoadAccidentsToContextBroker(t *testing.T) {
-	is, _, ts := setupMockRoadAccident(t, 0, "")
+	is, cb, ts := setupMockRoadAccident(t, 0, "")
 
 	dev := tfvDeviation{
 		Id:     "id",
@@ -36,8 +38,9 @@ func TestPublishingRoadAccidentsToContextBroker(t *testing.T) {
 		EndTime:   "2022-04-21T20:45:00.000+02:00",
 	}
 
-	err := ts.publishRoadAccidentToContextBroker(context.Background(), dev)
+	err := ts.publishRoadAccidentToContextBroker(context.Background(), dev, false)
 	is.NoErr(err)
+	is.Equal(len(cb.MergeEntityCalls()), 1)
 }
 
 func TestThatWeSkipPublishingRoadAccidentsWithPreviousIds(t *testing.T) {
@@ -58,12 +61,32 @@ func TestThatLastChangeIDStoresCorrectly(t *testing.T) {
 	is.Equal(lastChangeID, "7089127599774892692")
 }
 
-func TestThatIfSituationIsDeletedItTriggersUpdateStatus(t *testing.T) {
-	is, cb, ts := setupMockRoadAccident(t, http.StatusOK, deletedTfvJSON)
+func TestThatIfSituationIsDeletedStatusAttributeChanges(t *testing.T) {
+	is, cb, ts := setupMockRoadAccident(t, http.StatusOK, tfvResponseJSON)
 
 	_, err := ts.getAndPublishRoadAccidents(context.Background(), "0")
 	is.NoErr(err)
-	is.Equal(len(cb.MergeEntityCalls()), 0)
+	is.Equal(len(cb.CreateEntityCalls()), 1)
+
+	dev := tfvDeviation{
+		Id:     "SE_STA_TRISSID_1_9879392",
+		IconId: "roadAccident",
+		Geometry: tfvGeometry{
+			"POINT (13.0958767 55.9722252)",
+		},
+		StartTime: "2022-04-21T19:37:57.000+02:00",
+		EndTime:   "2022-04-21T20:45:00.000+02:00",
+	}
+	err = ts.publishRoadAccidentToContextBroker(context.Background(), dev, true)
+	is.NoErr(err)
+	is.Equal(len(cb.MergeEntityCalls()), 2) // this is 2 because the first publishing of a road accident will also initially trigger the mergeentity function, before moving on to create
+
+	e := cb.MergeEntityCalls()[1] // the second merge entity is the one containing status solved
+	eBytes, err := e.Fragment.MarshalJSON()
+	is.NoErr(err)
+
+	deleted := `"status":{"type":"Property","value":"solved"}`
+	is.True(strings.Contains(string(eBytes), deleted))
 }
 
 func setupMockRoadAccident(t *testing.T, tfvCode int, tfvBody string) (*is.I, *test.ContextBrokerClientMock, RoadAccidentSvc) {

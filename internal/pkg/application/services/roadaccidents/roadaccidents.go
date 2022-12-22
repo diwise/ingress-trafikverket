@@ -21,8 +21,7 @@ type RoadAccidentSvc interface {
 	Start(ctx context.Context) error
 	getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error)
 	getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) ([]byte, error)
-	publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation) error
-	updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error
+	publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation, deleted bool) error
 }
 
 type ts struct {
@@ -59,8 +58,6 @@ func (ts *ts) Start(ctx context.Context) error {
 	}
 }
 
-var previousDeviations map[string]string = make(map[string]string)
-
 func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error) {
 	var err error
 	ctx, span := tracer.Start(ctx, "get-and-publish")
@@ -80,33 +77,18 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	}
 
 	for _, sitch := range tfvResp.Response.Result[0].Situation {
-		if !sitch.Deleted { // check if this if can be moved into publishRoadAccidentToContextBroker with the new pattern of attempting merge before create.
-			for _, dev := range sitch.Deviation {
-				if dev.IconId == DeviationTypeRoadAccident {
-					err = ts.publishRoadAccidentToContextBroker(ctx, dev)
-					if err != nil && !errors.Is(err, ErrAlreadyExists) {
-						log.Error().Err(err).Msgf("failed to publish road accident %s", dev.Id)
-						continue
-					}
-
-					previousDeviations[dev.Id] = dev.Id
-				} else {
-					log.Info().Msgf("ignoring deviation of type %s", dev.IconId)
+		for _, dev := range sitch.Deviation {
+			if dev.IconId == DeviationTypeRoadAccident {
+				err = ts.publishRoadAccidentToContextBroker(ctx, dev, sitch.Deleted)
+				if err != nil && !errors.Is(err, ErrAlreadyExists) {
+					log.Error().Err(err).Msgf("failed to publish road accident %s", dev.Id)
+					continue
 				}
-			}
-		} else {
-			for _, dev := range sitch.Deviation {
-				_, exists := previousDeviations[dev.Id]
-
-				if exists {
-					err = ts.updateRoadAccidentStatus(ctx, dev)
-					if err != nil {
-						log.Error().Err(err).Msgf("failed to update road accident %s", dev.Id)
-						continue
-					}
-				}
+			} else {
+				log.Info().Msgf("ignoring deviation of type %s", dev.IconId)
 			}
 		}
+
 	}
 
 	return tfvResp.Response.Result[0].Info.LastChangeID, nil
