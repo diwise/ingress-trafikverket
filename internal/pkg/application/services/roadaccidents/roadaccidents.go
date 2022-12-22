@@ -15,6 +15,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var ErrAlreadyExists = errors.New("already exists")
+
 type RoadAccidentSvc interface {
 	Start(ctx context.Context) error
 	getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error)

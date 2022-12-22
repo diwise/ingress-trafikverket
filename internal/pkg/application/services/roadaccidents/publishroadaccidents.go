@@ -2,7 +2,6 @@ package roadaccidents
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -14,8 +13,6 @@ import (
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 )
-
-var ErrAlreadyExists = errors.New("already exists")
 
 func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation) error {
 	var err error
@@ -54,7 +51,6 @@ func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDev
 }
 
 func convertRoadAccidentToFiwareEntity(ra tfvDeviation) ([]entities.EntityDecoratorFunc, error) {
-
 	attributes := append(
 		make([]entities.EntityDecoratorFunc, 0, 2),
 		decorators.Description(ra.Message),
