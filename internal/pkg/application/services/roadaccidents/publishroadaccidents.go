@@ -24,6 +24,7 @@ func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDev
 	attributes, err := convertRoadAccidentToFiwareEntity(dev, deleted)
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to create attribute for fiware entity")
+		return err
 	}
 
 	fragment, _ := entities.NewFragment(attributes...)
@@ -35,15 +36,18 @@ func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDev
 	if err != nil {
 		if err != ngsierrors.ErrNotFound {
 			logger.Error().Err(err).Msg("failed to merge entity")
+			return err
 		}
 		entity, err := entities.New(entityID, fiware.RoadAccidentTypeName, attributes...)
 		if err != nil {
 			logger.Error().Err(err).Msg("entities.New failed")
+			return err
 		}
 
 		_, err = ts.ctxBroker.CreateEntity(ctx, entity, headers)
 		if err != nil {
 			logger.Error().Err(err).Msg("failed to post road accident to context broker")
+			return err
 		}
 	}
 
@@ -57,7 +61,7 @@ func convertRoadAccidentToFiwareEntity(ra tfvDeviation, deleted bool) ([]entitie
 	}
 
 	attributes := append(
-		make([]entities.EntityDecoratorFunc, 0, 2),
+		make([]entities.EntityDecoratorFunc, 0, 6),
 		decorators.Description(ra.Message),
 		decorators.Status(status[deleted]),
 	)

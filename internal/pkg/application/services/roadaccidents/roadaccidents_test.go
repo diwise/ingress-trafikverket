@@ -2,7 +2,6 @@ package roadaccidents
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -101,7 +100,7 @@ func setupMockRoadAccident(t *testing.T, tfvCode int, tfvBody string) (*is.I, *t
 
 	ctxBroker := &test.ContextBrokerClientMock{
 		CreateEntityFunc: func(ctx context.Context, entity types.Entity, headers map[string][]string) (*ngsild.CreateEntityResult, error) {
-			return nil, fmt.Errorf("not implemented")
+			return nil, nil
 		},
 		MergeEntityFunc: func(ctx context.Context, entityID string, fragment types.EntityFragment, headers map[string][]string) (*ngsild.MergeEntityResult, error) {
 			return nil, ngsierrors.ErrNotFound
