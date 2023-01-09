@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
@@ -63,7 +63,7 @@ func (ts *ts) getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) 
 		return nil, errors.New(errMsg)
 	}
 
-	responseBody, err := ioutil.ReadAll(apiResponse.Body)
+	responseBody, err := io.ReadAll(apiResponse.Body)
 
 	log.Info().Msgf("received response: %s", string(responseBody))
 

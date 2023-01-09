@@ -38,7 +38,7 @@ func main() {
 	}
 
 	if featureIsEnabled(logger, "roadaccident") {
-		ts := roadaccidents.NewService(authenticationKey, trafikverketURL, countyCode, contextBrokerURL)
+		ts := roadaccidents.NewService(authenticationKey, trafikverketURL, countyCode, ctxBrokerClient)
 		go ts.Start(ctx)
 	}
 
