@@ -2,6 +2,7 @@ package roadaccidents
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -34,10 +35,11 @@ func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDev
 
 	_, err = ts.ctxBroker.MergeEntity(ctx, entityID, fragment, headers)
 	if err != nil {
-		if err != ngsierrors.ErrNotFound {
+		if !errors.Is(err, ngsierrors.ErrNotFound) {
 			logger.Error().Err(err).Msg("failed to merge entity")
 			return err
 		}
+
 		entity, err := entities.New(entityID, fiware.RoadAccidentTypeName, attributes...)
 		if err != nil {
 			logger.Error().Err(err).Msg("entities.New failed")
