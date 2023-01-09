@@ -3,7 +3,6 @@ package weathersvc
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -36,15 +35,18 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	if err != nil {
 		if !errors.Is(err, ngsierrors.ErrNotFound) {
 			ws.log.Error().Err(err).Msg("failed to merge entity")
+			return err
 		}
 		entity, err := entities.New(entityID, fiware.WeatherObservedTypeName, attributes...)
 		if err != nil {
 			ws.log.Error().Err(err).Msg("entities.New failed")
+			return err
 		}
 
 		_, err = ws.ctxBrokerClient.CreateEntity(ctx, entity, headers)
 		if err != nil {
 			ws.log.Error().Err(err).Msg("failed to post weather observed to context broker")
+			return err
 		}
 	}
 
@@ -60,41 +62,27 @@ func convertWeatherStationToFiwareEntity(ws weatherStation) ([]entities.EntityDe
 	Latitude := strings.Split(position, " ")[1]
 	newLat, _ := strconv.ParseFloat(Latitude, 32)
 
-	convertedTime, err := convertTimeToRFC3339Format(ws.Measurement.MeasureTime)
-	if err != nil {
-		return nil, err
-	}
+	t, _ := time.Parse(time.RFC3339, ws.Measurement.MeasureTime)
+	utcTime := t.UTC().Format(time.RFC3339)
 
 	attributes := append(
 		make([]entities.EntityDecoratorFunc, 0, 7),
 		decorators.Location(newLat, newLong),
 		decorators.Name(ws.Name),
-		number("temperature", ws.Measurement.Air.Temp, convertedTime),
-		number("humidity", ws.Measurement.Air.RelativeHumidity/100.0, convertedTime),
-		decorators.DateObserved(convertedTime),
+		number("temperature", ws.Measurement.Air.Temp, utcTime),
+		number("humidity", ws.Measurement.Air.RelativeHumidity/100.0, utcTime),
+		decorators.DateObserved(utcTime),
 	)
 
 	if ws.Measurement.Wind.Direction != 0 || ws.Measurement.Wind.Force > 0.01 {
 		attributes = append(
 			attributes,
-			number("windDirection", float64(ws.Measurement.Wind.Direction), convertedTime),
-			number("windSpeed", ws.Measurement.Wind.Force, convertedTime),
+			number("windDirection", float64(ws.Measurement.Wind.Direction), utcTime),
+			number("windSpeed", ws.Measurement.Wind.Force, utcTime),
 		)
 	}
 
 	return attributes, nil
-}
-
-func convertTimeToRFC3339Format(timestring string) (string, error) {
-	layout := "2006-01-02T15:04:05.999-07:00"
-	parsedTime, err := time.Parse(layout, timestring)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse time from string: %s", err.Error())
-	}
-
-	formattedTime := parsedTime.UTC().Format(time.RFC3339)
-
-	return formattedTime, nil
 }
 
 func number(property string, value float64, at string) entities.EntityDecoratorFunc {
