@@ -1,18 +1,18 @@
 package weathersvc
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
+	"errors"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
-	"github.com/diwise/ngsi-ld-golang/pkg/ngsi-ld/geojson"
+	"github.com/diwise/context-broker/pkg/datamodels/fiware"
+	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
+	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
+	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
+	"github.com/diwise/context-broker/pkg/ngsild/types/properties"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error {
@@ -21,7 +21,40 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	_, span := tracer.Start(ctx, "publish-weatherobservations")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	position := weatherstation.Geometry.Position
+	attributes, err := convertWeatherStationToFiwareEntity(weatherstation)
+	if err != nil {
+		ws.log.Error().Err(err).Msgf("could not create attributes for weatherstation")
+	}
+
+	fragment, _ := entities.NewFragment(attributes...)
+	entityID := fiware.WeatherObservedIDPrefix + "se:trafikverket:temp:" + weatherstation.ID
+
+	headers := map[string][]string{"Content-Type": {"application/ld+json"}}
+
+	_, err = ws.ctxBrokerClient.MergeEntity(ctx, entityID, fragment, headers)
+	if err != nil {
+		if !errors.Is(err, ngsierrors.ErrNotFound) {
+			ws.log.Error().Err(err).Msg("failed to merge entity")
+			return err
+		}
+		entity, err := entities.New(entityID, fiware.WeatherObservedTypeName, attributes...)
+		if err != nil {
+			ws.log.Error().Err(err).Msg("entities.New failed")
+			return err
+		}
+
+		_, err = ws.ctxBrokerClient.CreateEntity(ctx, entity, headers)
+		if err != nil {
+			ws.log.Error().Err(err).Msg("failed to post weather observed to context broker")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func convertWeatherStationToFiwareEntity(ws weatherStation) ([]entities.EntityDecoratorFunc, error) {
+	position := ws.Geometry.Position
 	position = position[7 : len(position)-1]
 
 	Longitude := strings.Split(position, " ")[0]
@@ -29,30 +62,29 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	Latitude := strings.Split(position, " ")[1]
 	newLat, _ := strconv.ParseFloat(Latitude, 32)
 
-	device := fiware.NewDevice("se:trafikverket:temp:"+weatherstation.ID, fmt.Sprintf("t=%.1f", weatherstation.Measurement.Air.Temp))
-	device.Location = geojson.CreateGeoJSONPropertyFromWGS84(newLong, newLat)
+	t, _ := time.Parse(time.RFC3339, ws.Measurement.MeasureTime)
+	utcTime := t.UTC().Format(time.RFC3339)
 
-	patchBody, err := json.Marshal(device)
-	if err != nil {
-		return err
+	attributes := append(
+		make([]entities.EntityDecoratorFunc, 0, 7),
+		decorators.Location(newLat, newLong),
+		decorators.Name(ws.Name),
+		number("temperature", ws.Measurement.Air.Temp, utcTime),
+		number("humidity", ws.Measurement.Air.RelativeHumidity/100.0, utcTime),
+		decorators.DateObserved(utcTime),
+	)
+
+	if ws.Measurement.Wind.Direction != 0 || ws.Measurement.Wind.Force > 0.01 {
+		attributes = append(
+			attributes,
+			number("windDirection", float64(ws.Measurement.Wind.Direction), utcTime),
+			number("windSpeed", ws.Measurement.Wind.Force, utcTime),
+		)
 	}
 
-	httpClient := http.Client{
-		Transport: otelhttp.NewTransport(http.DefaultTransport),
-	}
+	return attributes, nil
+}
 
-	url := fmt.Sprintf("%s/ngsi-ld/v1/entities/%s/attrs/", ws.contextBrokerURL, device.ID)
-
-	req, _ := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(patchBody))
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusNoContent {
-		return err
-	}
-
-	return nil
+func number(property string, value float64, at string) entities.EntityDecoratorFunc {
+	return decorators.Number(property, value, properties.ObservedAt(at))
 }

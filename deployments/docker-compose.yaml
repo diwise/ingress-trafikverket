@@ -16,19 +16,23 @@ services:
 
 
   context-broker:
-    image: 'ghcr.io/diwise/context-broker@sha256:53bb3e9ca15164afd3e873c5ac8e56e40e107caa9cb99c47d5a6c748a5dc4bfb'
+    image: 'ghcr.io/diwise/context-broker:prod-9f3b4f349f72c95af4d91ff2ff838066f209b842'
     restart: always
     depends_on:
       - orion-ld
+    environment:
+      CONTEXT_BROKER_CLIENT_DEBUG: 'true'
     volumes:
       - ./configs/context-broker.yaml:/opt/diwise/config/default.yaml
+      - ./configs/context-broker-auth.rego:/opt/diwise/config/authz.rego
     ports:
       - '8081:8080'
 
 
   orion-ld:
-    image: 'quay.io/fiware/orion-ld@sha256:ea838e5b405170b6d42af9035a30454a21870f7f3738db73da27585bf6a478b3'
+    image: 'quay.io/fiware/orion-ld@sha256:a65adbface4d5467add735d01c7204951e3c474ef8fc901fbd3a2af285beafea'
     restart: always
+    command: [ '-experimental' ]
     environment:
       ORIONLD_MONGO_HOST: 'mongodb'
       ORIONLD_MONGO_USER: 'admin'

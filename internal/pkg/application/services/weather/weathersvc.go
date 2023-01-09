@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/diwise/context-broker/pkg/ngsild/client"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"github.com/rs/zerolog"
@@ -18,12 +19,13 @@ type WeatherService interface {
 	publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error
 }
 
-func NewWeatherService(log zerolog.Logger, authKey, trafikverketURL, contextBrokerURL string) WeatherService {
+func NewWeatherService(log zerolog.Logger, authKey, trafikverketURL string, ctxBrokerClient client.ContextBrokerClient) WeatherService {
 	return &ws{
 		log:               log,
 		authenticationKey: authKey,
 		trafikverketURL:   trafikverketURL,
-		contextBrokerURL:  contextBrokerURL,
+		ctxBrokerClient:   ctxBrokerClient,
+		stations:          map[string]string{},
 	}
 }
 
@@ -31,7 +33,8 @@ type ws struct {
 	log               zerolog.Logger
 	authenticationKey string
 	trafikverketURL   string
-	contextBrokerURL  string
+	ctxBrokerClient   client.ContextBrokerClient
+	stations          map[string]string
 }
 
 func (ws *ws) Start(ctx context.Context) error {
@@ -69,9 +72,18 @@ func (ws *ws) getAndPublishWeatherStations(ctx context.Context, lastChangeID str
 	}
 
 	for _, weatherstation := range answer.Response.Result[0].WeatherStations {
-		err = ws.publishWeatherStationStatus(ctx, weatherstation)
-		if err != nil {
-			log.Error().Err(err).Msgf("unable to publish data for weatherstation %s", weatherstation.ID)
+		if weatherstation.Active {
+			previousMeasureTime, ok := ws.stations[weatherstation.ID]
+			if ok && previousMeasureTime == weatherstation.Measurement.MeasureTime {
+				continue
+			}
+
+			ws.stations[weatherstation.ID] = weatherstation.Measurement.MeasureTime
+
+			err = ws.publishWeatherStationStatus(ctx, weatherstation)
+			if err != nil {
+				log.Error().Err(err).Msgf("unable to publish data for weatherstation %s", weatherstation.ID)
+			}
 		}
 	}
 

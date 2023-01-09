@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/diwise/context-broker/pkg/ngsild/client"
 	"github.com/diwise/ingress-trafikverket/internal/pkg/application/services/roadaccidents"
 	weathersvc "github.com/diwise/ingress-trafikverket/internal/pkg/application/services/weather"
 	"github.com/diwise/service-chassis/pkg/infrastructure/buildinfo"
@@ -29,22 +30,24 @@ func main() {
 	trafikverketURL := env.GetVariableOrDie(logger, "TFV_API_URL", "API URL")
 	countyCode := env.GetVariableOrDefault(logger, "TFV_COUNTY_CODE", "")
 	contextBrokerURL := env.GetVariableOrDie(logger, "CONTEXT_BROKER_URL", "context broker URL")
+	ctxBrokerClient := client.NewContextBrokerClient(contextBrokerURL, client.Debug("true"))
 
 	if featureIsEnabled(logger, "weather") {
-		ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, contextBrokerURL)
+		ws := weathersvc.NewWeatherService(logger, authenticationKey, trafikverketURL, ctxBrokerClient)
 		go ws.Start(ctx)
 	}
 
 	if featureIsEnabled(logger, "roadaccident") {
-		ts := roadaccidents.NewService(authenticationKey, trafikverketURL, countyCode, contextBrokerURL)
+		ts := roadaccidents.NewService(authenticationKey, trafikverketURL, countyCode, ctxBrokerClient)
 		go ts.Start(ctx)
 	}
 
 	setupRouterAndWaitForConnections(logger)
 }
 
-//featureIsEnabled checks wether a given feature is enabled by exanding the feature name into <uppercase>_ENABLED and checking if the corresponding environment variable is set to true.
-//  Ex: weather -> WEATHER_ENABLED
+// featureIsEnabled checks wether a given feature is enabled by exanding the feature name into <uppercase>_ENABLED and checking if the corresponding environment variable is set to true.
+//
+//	Ex: weather -> WEATHER_ENABLED
 func featureIsEnabled(logger zerolog.Logger, feature string) bool {
 	featureKey := fmt.Sprintf("%s_ENABLED", strings.ToUpper(feature))
 	isEnabled := os.Getenv(featureKey) == "true"

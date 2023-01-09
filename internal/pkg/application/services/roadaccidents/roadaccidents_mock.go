@@ -27,11 +27,8 @@ var _ RoadAccidentSvc = &RoadAccidentSvcMock{}
 // 			getRoadAccidentsFromTFVFunc: func(ctx context.Context, lastChangeID string) ([]byte, error) {
 // 				panic("mock out the getRoadAccidentsFromTFV method")
 // 			},
-// 			publishRoadAccidentToContextBrokerFunc: func(ctx context.Context, dev tfvDeviation) error {
+// 			publishRoadAccidentToContextBrokerFunc: func(ctx context.Context, dev tfvDeviation, deleted bool) error {
 // 				panic("mock out the publishRoadAccidentToContextBroker method")
-// 			},
-// 			updateRoadAccidentStatusFunc: func(ctx context.Context, dev tfvDeviation) error {
-// 				panic("mock out the updateRoadAccidentStatus method")
 // 			},
 // 		}
 //
@@ -50,10 +47,7 @@ type RoadAccidentSvcMock struct {
 	getRoadAccidentsFromTFVFunc func(ctx context.Context, lastChangeID string) ([]byte, error)
 
 	// publishRoadAccidentToContextBrokerFunc mocks the publishRoadAccidentToContextBroker method.
-	publishRoadAccidentToContextBrokerFunc func(ctx context.Context, dev tfvDeviation) error
-
-	// updateRoadAccidentStatusFunc mocks the updateRoadAccidentStatus method.
-	updateRoadAccidentStatusFunc func(ctx context.Context, dev tfvDeviation) error
+	publishRoadAccidentToContextBrokerFunc func(ctx context.Context, dev tfvDeviation, deleted bool) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -82,20 +76,14 @@ type RoadAccidentSvcMock struct {
 			Ctx context.Context
 			// Dev is the dev argument value.
 			Dev tfvDeviation
-		}
-		// updateRoadAccidentStatus holds details about calls to the updateRoadAccidentStatus method.
-		updateRoadAccidentStatus []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// Dev is the dev argument value.
-			Dev tfvDeviation
+			// Deleted is the deleted argument value.
+			Deleted bool
 		}
 	}
-	lockStart                               sync.RWMutex
-	lockgetAndPublishRoadAccidents          sync.RWMutex
-	lockgetRoadAccidentsFromTFV             sync.RWMutex
+	lockStart                              sync.RWMutex
+	lockgetAndPublishRoadAccidents         sync.RWMutex
+	lockgetRoadAccidentsFromTFV            sync.RWMutex
 	lockpublishRoadAccidentToContextBroker sync.RWMutex
-	lockupdateRoadAccidentStatus            sync.RWMutex
 }
 
 // Start calls StartFunc.
@@ -200,71 +188,40 @@ func (mock *RoadAccidentSvcMock) getRoadAccidentsFromTFVCalls() []struct {
 }
 
 // publishRoadAccidentToContextBroker calls publishRoadAccidentToContextBrokerFunc.
-func (mock *RoadAccidentSvcMock) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation) error {
+func (mock *RoadAccidentSvcMock) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation, deleted bool) error {
 	if mock.publishRoadAccidentToContextBrokerFunc == nil {
 		panic("RoadAccidentSvcMock.publishRoadAccidentToContextBrokerFunc: method is nil but RoadAccidentSvc.publishRoadAccidentToContextBroker was just called")
 	}
 	callInfo := struct {
-		Ctx context.Context
-		Dev tfvDeviation
+		Ctx     context.Context
+		Dev     tfvDeviation
+		Deleted bool
 	}{
-		Ctx: ctx,
-		Dev: dev,
+		Ctx:     ctx,
+		Dev:     dev,
+		Deleted: deleted,
 	}
 	mock.lockpublishRoadAccidentToContextBroker.Lock()
 	mock.calls.publishRoadAccidentToContextBroker = append(mock.calls.publishRoadAccidentToContextBroker, callInfo)
 	mock.lockpublishRoadAccidentToContextBroker.Unlock()
-	return mock.publishRoadAccidentToContextBrokerFunc(ctx, dev)
+	return mock.publishRoadAccidentToContextBrokerFunc(ctx, dev, deleted)
 }
 
 // publishRoadAccidentToContextBrokerCalls gets all the calls that were made to publishRoadAccidentToContextBroker.
 // Check the length with:
 //     len(mockedRoadAccidentSvc.publishRoadAccidentToContextBrokerCalls())
 func (mock *RoadAccidentSvcMock) publishRoadAccidentToContextBrokerCalls() []struct {
-	Ctx context.Context
-	Dev tfvDeviation
+	Ctx     context.Context
+	Dev     tfvDeviation
+	Deleted bool
 } {
 	var calls []struct {
-		Ctx context.Context
-		Dev tfvDeviation
+		Ctx     context.Context
+		Dev     tfvDeviation
+		Deleted bool
 	}
 	mock.lockpublishRoadAccidentToContextBroker.RLock()
 	calls = mock.calls.publishRoadAccidentToContextBroker
 	mock.lockpublishRoadAccidentToContextBroker.RUnlock()
-	return calls
-}
-
-// updateRoadAccidentStatus calls updateRoadAccidentStatusFunc.
-func (mock *RoadAccidentSvcMock) updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error {
-	if mock.updateRoadAccidentStatusFunc == nil {
-		panic("RoadAccidentSvcMock.updateRoadAccidentStatusFunc: method is nil but RoadAccidentSvc.updateRoadAccidentStatus was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-		Dev tfvDeviation
-	}{
-		Ctx: ctx,
-		Dev: dev,
-	}
-	mock.lockupdateRoadAccidentStatus.Lock()
-	mock.calls.updateRoadAccidentStatus = append(mock.calls.updateRoadAccidentStatus, callInfo)
-	mock.lockupdateRoadAccidentStatus.Unlock()
-	return mock.updateRoadAccidentStatusFunc(ctx, dev)
-}
-
-// updateRoadAccidentStatusCalls gets all the calls that were made to updateRoadAccidentStatus.
-// Check the length with:
-//     len(mockedRoadAccidentSvc.updateRoadAccidentStatusCalls())
-func (mock *RoadAccidentSvcMock) updateRoadAccidentStatusCalls() []struct {
-	Ctx context.Context
-	Dev tfvDeviation
-} {
-	var calls []struct {
-		Ctx context.Context
-		Dev tfvDeviation
-	}
-	mock.lockupdateRoadAccidentStatus.RLock()
-	calls = mock.calls.updateRoadAccidentStatus
-	mock.lockupdateRoadAccidentStatus.RUnlock()
 	return calls
 }

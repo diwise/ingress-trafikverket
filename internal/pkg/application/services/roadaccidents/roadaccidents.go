@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/diwise/context-broker/pkg/ngsild/client"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 	"github.com/rs/zerolog"
@@ -14,29 +15,30 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var ErrAlreadyExists = errors.New("already exists")
+
 type RoadAccidentSvc interface {
 	Start(ctx context.Context) error
 	getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error)
 	getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) ([]byte, error)
-	publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation) error
-	updateRoadAccidentStatus(ctx context.Context, dev tfvDeviation) error
+	publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation, deleted bool) error
 }
 
 type ts struct {
-	authKey          string
-	tfvURL           string
-	countyCode       string
-	contextBrokerURL string
+	authKey    string
+	tfvURL     string
+	countyCode string
+	ctxBroker  client.ContextBrokerClient
 }
 
 var tracer = otel.Tracer("roadaccidents")
 
-func NewService(authKey, tfvURL, countyCode, contextBrokerURL string) RoadAccidentSvc {
+func NewService(authKey, tfvURL, countyCode string, ctxBroker client.ContextBrokerClient) RoadAccidentSvc {
 	return &ts{
-		authKey:          authKey,
-		tfvURL:           tfvURL,
-		countyCode:       countyCode,
-		contextBrokerURL: contextBrokerURL,
+		authKey:    authKey,
+		tfvURL:     tfvURL,
+		countyCode: countyCode,
+		ctxBroker:  ctxBroker,
 	}
 }
 
@@ -55,8 +57,6 @@ func (ts *ts) Start(ctx context.Context) error {
 		}
 	}
 }
-
-var previousDeviations map[string]string = make(map[string]string)
 
 func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error) {
 	var err error
@@ -77,33 +77,18 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	}
 
 	for _, sitch := range tfvResp.Response.Result[0].Situation {
-		if !sitch.Deleted {
-			for _, dev := range sitch.Deviation {
-				if dev.IconId == DeviationTypeRoadAccident {
-					err = ts.publishRoadAccidentToContextBroker(ctx, dev)
-					if err != nil && !errors.Is(err, ErrAlreadyExists) {
-						log.Error().Err(err).Msgf("failed to publish road accident %s", dev.Id)
-						continue
-					}
-
-					previousDeviations[dev.Id] = dev.Id
-				} else {
-					log.Info().Msgf("ignoring deviation of type %s", dev.IconId)
+		for _, dev := range sitch.Deviation {
+			if dev.IconId == DeviationTypeRoadAccident {
+				err = ts.publishRoadAccidentToContextBroker(ctx, dev, sitch.Deleted)
+				if err != nil && !errors.Is(err, ErrAlreadyExists) {
+					log.Error().Err(err).Msgf("failed to publish road accident %s", dev.Id)
+					continue
 				}
-			}
-		} else {
-			for _, dev := range sitch.Deviation {
-				_, exists := previousDeviations[dev.Id]
-
-				if exists {
-					err = ts.updateRoadAccidentStatus(ctx, dev)
-					if err != nil {
-						log.Error().Err(err).Msgf("failed to update road accident %s", dev.Id)
-						continue
-					}
-				}
+			} else {
+				log.Info().Msgf("ignoring deviation of type %s", dev.IconId)
 			}
 		}
+
 	}
 
 	return tfvResp.Response.Result[0].Info.LastChangeID, nil

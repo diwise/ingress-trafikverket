@@ -6,19 +6,29 @@ type geometry struct {
 
 type measurement struct {
 	Air         air    `json:"Air"`
+	Wind        wind   `json:"Wind"`
 	MeasureTime string `json:"MeasureTime"`
 }
 
 type air struct {
-	Temp float64 `json:"Temp"`
+	Temp             float64 `json:"Temp"`
+	RelativeHumidity float64 `json:"RelativeHumidity"`
+}
+
+type wind struct {
+	Direction int     `json:"Direction"`
+	Force     float64 `json:"Force"`
+	ForceMax  float64 `json:"ForceMax"`
 }
 
 type weatherStation struct {
 	ID          string      `json:"ID"`
 	Name        string      `json:"Name"`
+	Active      bool        `json:"Active"`
 	Geometry    geometry    `json:"Geometry"`
 	Measurement measurement `json:"Measurement"`
 }
+
 type weatherStationResponse struct {
 	Response struct {
 		Result []struct {
