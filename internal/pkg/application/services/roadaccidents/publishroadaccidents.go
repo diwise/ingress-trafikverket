@@ -77,14 +77,10 @@ func convertRoadAccidentToFiwareEntity(ra tfvDeviation, deleted bool) ([]entitie
 		attributes = append(attributes, decorators.DateCreated(utcTime), decorators.DateTime("accidentDate", utcTime))
 	}
 
-	if deleted {
-		attributes = append(attributes, decorators.DateModified(time.Now().UTC().Format(time.RFC3339)))
-	}
-
 	return attributes, nil
 }
 
-func getLocationFromString(location string) (lat float64, lon float64) {
+func getLocationFromString(location string) (latitude float64, longitude float64) {
 	position := location[7 : len(location)-1]
 
 	Longitude := strings.Split(position, " ")[0]
