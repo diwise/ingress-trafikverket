@@ -7,8 +7,8 @@ import (
 
 	"github.com/diwise/context-broker/pkg/ngsild/client"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
-	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 )
 
@@ -19,9 +19,8 @@ type WeatherService interface {
 	publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error
 }
 
-func NewWeatherService(log zerolog.Logger, authKey, trafikverketURL string, ctxBrokerClient client.ContextBrokerClient) WeatherService {
+func NewWeatherService(ctx context.Context, authKey, trafikverketURL string, ctxBrokerClient client.ContextBrokerClient) WeatherService {
 	return &ws{
-		log:               log,
 		authenticationKey: authKey,
 		trafikverketURL:   trafikverketURL,
 		ctxBrokerClient:   ctxBrokerClient,
@@ -30,7 +29,6 @@ func NewWeatherService(log zerolog.Logger, authKey, trafikverketURL string, ctxB
 }
 
 type ws struct {
-	log               zerolog.Logger
 	authenticationKey string
 	trafikverketURL   string
 	ctxBrokerClient   client.ContextBrokerClient
@@ -44,7 +42,9 @@ func (ws *ws) Start(ctx context.Context) error {
 	for {
 		lastChangeID, err = ws.getAndPublishWeatherStations(ctx, lastChangeID)
 		if err != nil {
-			ws.log.Error().Msg(err.Error())
+			logging.GetFromContext(ctx).Error(
+				"failed to get and publish weather stations", "err", err.Error(),
+			)
 		}
 		time.Sleep(30 * time.Second)
 	}
@@ -58,7 +58,9 @@ func (ws *ws) getAndPublishWeatherStations(ctx context.Context, lastChangeID str
 	ctx, span := tracer.Start(ctx, "get-and-publish-status")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	_, ctx, log := o11y.AddTraceIDToLoggerAndStoreInContext(span, ws.log, ctx)
+	_, ctx, log := o11y.AddTraceIDToLoggerAndStoreInContext(
+		span, logging.GetFromContext(ctx), ctx,
+	)
 
 	responseBody, err := ws.getWeatherStationStatus(ctx, lastChangeID)
 	if err != nil {
@@ -82,7 +84,7 @@ func (ws *ws) getAndPublishWeatherStations(ctx context.Context, lastChangeID str
 
 			err = ws.publishWeatherStationStatus(ctx, weatherstation)
 			if err != nil {
-				log.Error().Err(err).Msgf("unable to publish data for weatherstation %s", weatherstation.ID)
+				log.Error("unable to publish data for weatherstation", "weatherstation", weatherstation.ID, "err", err)
 			}
 		}
 	}

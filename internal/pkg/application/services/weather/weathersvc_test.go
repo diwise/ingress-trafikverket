@@ -14,7 +14,6 @@ import (
 	"github.com/diwise/service-chassis/pkg/test/http/expects"
 	"github.com/diwise/service-chassis/pkg/test/http/response"
 	"github.com/matryer/is"
-	"github.com/rs/zerolog"
 )
 
 func TestWeather(t *testing.T) {
@@ -100,7 +99,7 @@ func setupMockWeatherService(t *testing.T, tfvStatusCode int, tfvBody string) (*
 			return nil, ngsierrors.ErrNotFound
 		},
 	}
-	ws := NewWeatherService(zerolog.Logger{}, "", tfvMock.URL(), ctxBroker)
+	ws := NewWeatherService(context.Background(), "", tfvMock.URL(), ctxBroker)
 
 	return is, ctxBroker, ws
 }

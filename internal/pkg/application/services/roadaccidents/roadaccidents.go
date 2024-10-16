@@ -7,12 +7,10 @@ import (
 	"time"
 
 	"github.com/diwise/context-broker/pkg/ngsild/client"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var ErrAlreadyExists = errors.New("already exists")
@@ -53,7 +51,7 @@ func (ts *ts) Start(ctx context.Context) error {
 
 		lastChangeID, err = ts.getAndPublishRoadAccidents(ctx, lastChangeID)
 		if err != nil {
-			logger.Error().Err(err).Msg(err.Error())
+			logger.Error("failed to get and publish road accidents", "err", err.Error())
 		}
 	}
 }
@@ -63,7 +61,7 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	ctx, span := tracer.Start(ctx, "get-and-publish")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	_, ctx, _ = addTraceIDToLoggerAndStoreInContext(span, logging.GetFromContext(ctx), ctx)
+	_, ctx, logger := o11y.AddTraceIDToLoggerAndStoreInContext(span, logging.GetFromContext(ctx), ctx)
 
 	resp, err := ts.getRoadAccidentsFromTFV(ctx, lastChangeID)
 	if err != nil {
@@ -81,30 +79,15 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 			if dev.IconId == DeviationTypeRoadAccident {
 				err = ts.publishRoadAccidentToContextBroker(ctx, dev, sitch.Deleted)
 				if err != nil && !errors.Is(err, ErrAlreadyExists) {
-					log.Error().Err(err).Msgf("failed to publish road accident %s", dev.Id)
+					logger.Error("failed to publish road accident", "id", dev.Id, "err", err.Error())
 					continue
 				}
 			} else {
-				log.Info().Msgf("ignoring deviation of type %s", dev.IconId)
+				logger.Info("ignoring deviation", "deviationtype", dev.IconId)
 			}
 		}
 
 	}
 
 	return tfvResp.Response.Result[0].Info.LastChangeID, nil
-}
-
-func addTraceIDToLoggerAndStoreInContext(span trace.Span, logger zerolog.Logger, ctx context.Context) (string, context.Context, zerolog.Logger) {
-
-	log := logger
-	traceID := span.SpanContext().TraceID()
-	traceIDStr := ""
-
-	if traceID.IsValid() {
-		traceIDStr = traceID.String()
-		log = log.With().Str("traceID", traceIDStr).Logger()
-	}
-
-	ctx = logging.NewContextWithLogger(ctx, log)
-	return traceIDStr, ctx, log
 }

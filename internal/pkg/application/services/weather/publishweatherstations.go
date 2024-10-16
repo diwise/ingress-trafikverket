@@ -12,6 +12,7 @@ import (
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
 	"github.com/diwise/context-broker/pkg/ngsild/types/properties"
+	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 )
 
@@ -21,9 +22,11 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	_, span := tracer.Start(ctx, "publish-weatherobservations")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
+	logger := logging.GetFromContext(ctx)
+
 	attributes, err := convertWeatherStationToFiwareEntity(weatherstation)
 	if err != nil {
-		ws.log.Error().Err(err).Msgf("could not create attributes for weatherstation")
+		logger.Error("could not create attributes for weatherstation", "err", err.Error())
 	}
 
 	fragment, _ := entities.NewFragment(attributes...)
@@ -34,18 +37,18 @@ func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation we
 	_, err = ws.ctxBrokerClient.MergeEntity(ctx, entityID, fragment, headers)
 	if err != nil {
 		if !errors.Is(err, ngsierrors.ErrNotFound) {
-			ws.log.Error().Err(err).Msg("failed to merge entity")
+			logger.Error("failed to merge entity", "err", err.Error())
 			return err
 		}
 		entity, err := entities.New(entityID, fiware.WeatherObservedTypeName, attributes...)
 		if err != nil {
-			ws.log.Error().Err(err).Msg("entities.New failed")
+			logger.Error("entities.New failed", "err", err.Error())
 			return err
 		}
 
 		_, err = ws.ctxBrokerClient.CreateEntity(ctx, entity, headers)
 		if err != nil {
-			ws.log.Error().Err(err).Msg("failed to post weather observed to context broker")
+			logger.Error("failed to post weather observed to context broker", "err", err.Error())
 			return err
 		}
 	}

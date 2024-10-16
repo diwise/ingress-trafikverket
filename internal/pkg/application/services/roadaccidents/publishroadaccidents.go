@@ -24,7 +24,7 @@ func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDev
 
 	attributes, err := convertRoadAccidentToFiwareEntity(dev, deleted)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to create attribute for fiware entity")
+		logger.Error("failed to create attribute for fiware entity", "err", err.Error())
 		return err
 	}
 
@@ -36,19 +36,19 @@ func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDev
 	_, err = ts.ctxBroker.MergeEntity(ctx, entityID, fragment, headers)
 	if err != nil {
 		if !errors.Is(err, ngsierrors.ErrNotFound) {
-			logger.Error().Err(err).Msg("failed to merge entity")
+			logger.Error("failed to merge entity", "err", err.Error())
 			return err
 		}
 
 		entity, err := entities.New(entityID, fiware.RoadAccidentTypeName, attributes...)
 		if err != nil {
-			logger.Error().Err(err).Msg("entities.New failed")
+			logger.Error("entities.New failed", "err", err.Error())
 			return err
 		}
 
 		_, err = ts.ctxBroker.CreateEntity(ctx, entity, headers)
 		if err != nil {
-			logger.Error().Err(err).Msg("failed to post road accident to context broker")
+			logger.Error("failed to post road accident to context broker", "err", err.Error())
 			return err
 		}
 	}

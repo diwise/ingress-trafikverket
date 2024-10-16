@@ -1,4 +1,4 @@
-FROM golang:1.19 AS builder
+FROM docker.io/golang:1.23 AS builder
 
 
 # Set the Current Working Directory inside the container
@@ -16,7 +16,7 @@ WORKDIR /app/cmd/ingress-trafikverket
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal
+FROM registry.access.redhat.com/ubi9/ubi-minimal
 WORKDIR /opt/diwise
 
 LABEL "org.opencontainers.image.source"="https://github.com/diwise/ingress-trafikverket"

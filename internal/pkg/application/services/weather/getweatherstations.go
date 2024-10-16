@@ -29,18 +29,18 @@ func (ws *ws) getWeatherStationStatus(ctx context.Context, lastChangeID string) 
 
 	apiReq, err := http.NewRequestWithContext(ctx, http.MethodPost, ws.trafikverketURL, bytes.NewBufferString(requestBody))
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create http request")
+		log.Error("failed to create http request", "err", err.Error())
 		return []byte{}, err
 	}
 	apiReq.Header.Set("Content-Type", "text/xml")
 
 	apiResponse, err := httpClient.Do(apiReq)
 	if err != nil {
-		log.Error().Msgf("failed to retrieve weatherstations")
+		log.Error("failed to retrieve weatherstations", "err", err.Error())
 		return nil, err
 	}
 	if apiResponse.StatusCode != http.StatusOK {
-		log.Error().Msgf("expected status code %d, but got %d", http.StatusOK, apiResponse.StatusCode)
+		log.Error(fmt.Sprintf("expected status code %d, but got %d", http.StatusOK, apiResponse.StatusCode))
 		return []byte{}, errors.New("")
 	}
 
@@ -48,7 +48,7 @@ func (ws *ws) getWeatherStationStatus(ctx context.Context, lastChangeID string) 
 
 	responseBody, err := io.ReadAll(apiResponse.Body)
 
-	log.Info().Msgf("received response: " + string(responseBody))
+	log.Debug("received response", "body", string(responseBody))
 
 	return responseBody, err
 }
