@@ -44,7 +44,7 @@ func TestPublishingRoadAccidentsToContextBroker(t *testing.T) {
 	_ = ts.publishRoadAccidentToContextBroker(context.Background(), dev, false)
 
 	is.Equal(len(cb.MergeEntityCalls()), 1)
-	is.Equal(cb.MergeEntityCalls()[0].EntityID, "urn:ngsi-ld:RoadAccident:id")
+	is.Equal(cb.MergeEntityCalls()[0].EntityID, "urn:ngsi-ld:RoadAccident:se:trafikverket:api:deviation:id")
 	is.NoErr(entities.ValidateFragmentAttributes(
 		cb.MergeEntityCalls()[0].Fragment,
 		map[string]any{

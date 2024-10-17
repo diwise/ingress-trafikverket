@@ -43,9 +43,12 @@ func (ws *weatherSvc) Start(ctx context.Context) (chan struct{}, error) {
 		var err error
 		lastChangeID := "0"
 
-		defer func() { done <- struct{}{} }()
-
 		tmr := time.NewTicker(ws.interval)
+
+		defer func() {
+			tmr.Stop()
+			done <- struct{}{}
+		}()
 
 		for {
 			select {

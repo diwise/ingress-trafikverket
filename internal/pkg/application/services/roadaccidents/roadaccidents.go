@@ -42,7 +42,7 @@ func NewService(_ context.Context, authKey, tfvURL, countyCode string, ctxBroker
 	}
 }
 
-func (ts *roadAccidentSvc) Start(ctx context.Context) (chan struct{}, error) {
+func (ras *roadAccidentSvc) Start(ctx context.Context) (chan struct{}, error) {
 
 	done := make(chan struct{})
 
@@ -50,15 +50,18 @@ func (ts *roadAccidentSvc) Start(ctx context.Context) (chan struct{}, error) {
 		var err error
 		lastChangeID := "0"
 
-		defer func() { done <- struct{}{} }()
+		tmr := time.NewTicker(ras.interval)
 
-		tmr := time.NewTicker(ts.interval)
+		defer func() {
+			tmr.Stop()
+			done <- struct{}{}
+		}()
 
 		for {
 			select {
 			case <-tmr.C:
 				{
-					lastChangeID, err = ts.getAndPublishRoadAccidents(ctx, lastChangeID)
+					lastChangeID, err = ras.getAndPublishRoadAccidents(ctx, lastChangeID)
 					if err != nil {
 						logger := logging.GetFromContext(ctx)
 						logger.Error("failed to get and publish road accidents", "err", err.Error())
@@ -75,14 +78,14 @@ func (ts *roadAccidentSvc) Start(ctx context.Context) (chan struct{}, error) {
 	return done, nil
 }
 
-func (ts *roadAccidentSvc) getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error) {
+func (ras *roadAccidentSvc) getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error) {
 	var err error
 	ctx, span := tracer.Start(ctx, "get-and-publish")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
 	_, ctx, logger := o11y.AddTraceIDToLoggerAndStoreInContext(span, logging.GetFromContext(ctx), ctx)
 
-	resp, err := ts.getRoadAccidentsFromTFV(ctx, lastChangeID)
+	resp, err := ras.getRoadAccidentsFromTFV(ctx, lastChangeID)
 	if err != nil {
 		return lastChangeID, err
 	}
@@ -98,7 +101,7 @@ func (ts *roadAccidentSvc) getAndPublishRoadAccidents(ctx context.Context, lastC
 	for _, sitch := range tfvResp.Response.Result[0].Situation {
 		for _, dev := range sitch.Deviation {
 			if dev.IconId == DeviationTypeRoadAccident {
-				err = ts.publishRoadAccidentToContextBroker(ctx, dev, sitch.Deleted)
+				err = ras.publishRoadAccidentToContextBroker(ctx, dev, sitch.Deleted)
 				if err != nil && !errors.Is(err, ErrAlreadyExists) {
 					logger.Error("failed to publish road accident", "id", dev.Id, "err", err.Error())
 					continue
