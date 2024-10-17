@@ -7,15 +7,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/diwise/context-broker/pkg/datamodels/fiware"
 	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
-	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 )
 
-func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation, deleted bool) error {
+func (ts *roadAccidentSvc) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation, deleted bool) error {
 	var err error
 	ctx, span := tracer.Start(ctx, "publish-to-broker")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
@@ -68,8 +68,8 @@ func convertRoadAccidentToFiwareEntity(ra tfvDeviation, deleted bool) ([]entitie
 		decorators.Status(status[deleted]),
 	)
 
-	if ra.Geometry.WGS84 != "" {
-		lat, lon := getLocationFromString(ra.Geometry.WGS84)
+	if ra.Geometry.Point.WGS84 != "" {
+		lat, lon := getLocationFromString(ra.Geometry.Point.WGS84)
 		attributes = append(attributes, decorators.Location(lat, lon))
 	}
 

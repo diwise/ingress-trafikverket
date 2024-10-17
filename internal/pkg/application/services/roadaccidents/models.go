@@ -1,7 +1,11 @@
 package roadaccidents
 
-type tfvGeometry struct {
+type tfvPoint struct {
 	WGS84 string `json:"WGS84"`
+}
+
+type tfvGeometry struct {
+	Point tfvPoint `json:"Point"`
 }
 
 const (

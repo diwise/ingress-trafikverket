@@ -14,31 +14,31 @@ var _ RoadAccidentSvc = &RoadAccidentSvcMock{}
 
 // RoadAccidentSvcMock is a mock implementation of RoadAccidentSvc.
 //
-// 	func TestSomethingThatUsesRoadAccidentSvc(t *testing.T) {
+//	func TestSomethingThatUsesRoadAccidentSvc(t *testing.T) {
 //
-// 		// make and configure a mocked RoadAccidentSvc
-// 		mockedRoadAccidentSvc := &RoadAccidentSvcMock{
-// 			StartFunc: func(ctx context.Context) error {
-// 				panic("mock out the Start method")
-// 			},
-// 			getAndPublishRoadAccidentsFunc: func(ctx context.Context, lastChangeID string) (string, error) {
-// 				panic("mock out the getAndPublishRoadAccidents method")
-// 			},
-// 			getRoadAccidentsFromTFVFunc: func(ctx context.Context, lastChangeID string) ([]byte, error) {
-// 				panic("mock out the getRoadAccidentsFromTFV method")
-// 			},
-// 			publishRoadAccidentToContextBrokerFunc: func(ctx context.Context, dev tfvDeviation, deleted bool) error {
-// 				panic("mock out the publishRoadAccidentToContextBroker method")
-// 			},
-// 		}
+//		// make and configure a mocked RoadAccidentSvc
+//		mockedRoadAccidentSvc := &RoadAccidentSvcMock{
+//			StartFunc: func(ctx context.Context) (chan struct{}, error) {
+//				panic("mock out the Start method")
+//			},
+//			getAndPublishRoadAccidentsFunc: func(ctx context.Context, lastChangeID string) (string, error) {
+//				panic("mock out the getAndPublishRoadAccidents method")
+//			},
+//			getRoadAccidentsFromTFVFunc: func(ctx context.Context, lastChangeID string) ([]byte, error) {
+//				panic("mock out the getRoadAccidentsFromTFV method")
+//			},
+//			publishRoadAccidentToContextBrokerFunc: func(ctx context.Context, dev tfvDeviation, deleted bool) error {
+//				panic("mock out the publishRoadAccidentToContextBroker method")
+//			},
+//		}
 //
-// 		// use mockedRoadAccidentSvc in code that requires RoadAccidentSvc
-// 		// and then make assertions.
+//		// use mockedRoadAccidentSvc in code that requires RoadAccidentSvc
+//		// and then make assertions.
 //
-// 	}
+//	}
 type RoadAccidentSvcMock struct {
 	// StartFunc mocks the Start method.
-	StartFunc func(ctx context.Context) error
+	StartFunc func(ctx context.Context) (chan struct{}, error)
 
 	// getAndPublishRoadAccidentsFunc mocks the getAndPublishRoadAccidents method.
 	getAndPublishRoadAccidentsFunc func(ctx context.Context, lastChangeID string) (string, error)
@@ -87,7 +87,7 @@ type RoadAccidentSvcMock struct {
 }
 
 // Start calls StartFunc.
-func (mock *RoadAccidentSvcMock) Start(ctx context.Context) error {
+func (mock *RoadAccidentSvcMock) Start(ctx context.Context) (chan struct{}, error) {
 	if mock.StartFunc == nil {
 		panic("RoadAccidentSvcMock.StartFunc: method is nil but RoadAccidentSvc.Start was just called")
 	}
@@ -104,7 +104,8 @@ func (mock *RoadAccidentSvcMock) Start(ctx context.Context) error {
 
 // StartCalls gets all the calls that were made to Start.
 // Check the length with:
-//     len(mockedRoadAccidentSvc.StartCalls())
+//
+//	len(mockedRoadAccidentSvc.StartCalls())
 func (mock *RoadAccidentSvcMock) StartCalls() []struct {
 	Ctx context.Context
 } {
@@ -137,7 +138,8 @@ func (mock *RoadAccidentSvcMock) getAndPublishRoadAccidents(ctx context.Context,
 
 // getAndPublishRoadAccidentsCalls gets all the calls that were made to getAndPublishRoadAccidents.
 // Check the length with:
-//     len(mockedRoadAccidentSvc.getAndPublishRoadAccidentsCalls())
+//
+//	len(mockedRoadAccidentSvc.getAndPublishRoadAccidentsCalls())
 func (mock *RoadAccidentSvcMock) getAndPublishRoadAccidentsCalls() []struct {
 	Ctx          context.Context
 	LastChangeID string
@@ -172,7 +174,8 @@ func (mock *RoadAccidentSvcMock) getRoadAccidentsFromTFV(ctx context.Context, la
 
 // getRoadAccidentsFromTFVCalls gets all the calls that were made to getRoadAccidentsFromTFV.
 // Check the length with:
-//     len(mockedRoadAccidentSvc.getRoadAccidentsFromTFVCalls())
+//
+//	len(mockedRoadAccidentSvc.getRoadAccidentsFromTFVCalls())
 func (mock *RoadAccidentSvcMock) getRoadAccidentsFromTFVCalls() []struct {
 	Ctx          context.Context
 	LastChangeID string
@@ -209,7 +212,8 @@ func (mock *RoadAccidentSvcMock) publishRoadAccidentToContextBroker(ctx context.
 
 // publishRoadAccidentToContextBrokerCalls gets all the calls that were made to publishRoadAccidentToContextBroker.
 // Check the length with:
-//     len(mockedRoadAccidentSvc.publishRoadAccidentToContextBrokerCalls())
+//
+//	len(mockedRoadAccidentSvc.publishRoadAccidentToContextBrokerCalls())
 func (mock *RoadAccidentSvcMock) publishRoadAccidentToContextBrokerCalls() []struct {
 	Ctx     context.Context
 	Dev     tfvDeviation

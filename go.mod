@@ -3,11 +3,8 @@ module github.com/diwise/ingress-trafikverket
 go 1.23
 
 require (
-	github.com/diwise/ngsi-ld-golang v0.0.0-20220518083256-2e7d28ad5f2e
-	github.com/go-chi/chi/v5 v5.0.12
 	github.com/matryer/is v1.4.1
-	github.com/rs/cors v1.11.0
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.50.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0
 	go.opentelemetry.io/otel v1.30.0
 )
 
@@ -15,8 +12,9 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/prometheus/client_golang v1.19.1 // indirect
+	github.com/prometheus/client_golang v1.20.2 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
@@ -30,7 +28,7 @@ require (
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
-	github.com/diwise/context-broker v0.0.0-20240912125110-2ae284e9374c
+	github.com/diwise/context-broker v0.0.0-20241017121544-301727f12da3
 	github.com/diwise/service-chassis v0.0.0-20241008182837-dd85d30bd8c3
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect

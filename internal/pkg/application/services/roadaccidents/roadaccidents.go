@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/diwise/context-broker/pkg/ngsild/client"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/application/services"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
@@ -16,47 +17,65 @@ import (
 var ErrAlreadyExists = errors.New("already exists")
 
 type RoadAccidentSvc interface {
-	Start(ctx context.Context) error
-	getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error)
-	getRoadAccidentsFromTFV(ctx context.Context, lastChangeID string) ([]byte, error)
-	publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation, deleted bool) error
+	services.Starter
 }
 
-type ts struct {
+type roadAccidentSvc struct {
 	authKey    string
 	tfvURL     string
 	countyCode string
-	ctxBroker  client.ContextBrokerClient
+
+	interval time.Duration
+
+	ctxBroker client.ContextBrokerClient
 }
 
 var tracer = otel.Tracer("roadaccidents")
 
-func NewService(authKey, tfvURL, countyCode string, ctxBroker client.ContextBrokerClient) RoadAccidentSvc {
-	return &ts{
+func NewService(_ context.Context, authKey, tfvURL, countyCode string, ctxBroker client.ContextBrokerClient) RoadAccidentSvc {
+	return &roadAccidentSvc{
 		authKey:    authKey,
 		tfvURL:     tfvURL,
 		countyCode: countyCode,
+		interval:   30 * time.Second,
 		ctxBroker:  ctxBroker,
 	}
 }
 
-func (ts *ts) Start(ctx context.Context) error {
-	var err error
-	lastChangeID := "0"
+func (ts *roadAccidentSvc) Start(ctx context.Context) (chan struct{}, error) {
 
-	logger := logging.GetFromContext(ctx)
+	done := make(chan struct{})
 
-	for {
-		time.Sleep(30 * time.Second)
+	go func() {
+		var err error
+		lastChangeID := "0"
 
-		lastChangeID, err = ts.getAndPublishRoadAccidents(ctx, lastChangeID)
-		if err != nil {
-			logger.Error("failed to get and publish road accidents", "err", err.Error())
+		defer func() { done <- struct{}{} }()
+
+		tmr := time.NewTicker(ts.interval)
+
+		for {
+			select {
+			case <-tmr.C:
+				{
+					lastChangeID, err = ts.getAndPublishRoadAccidents(ctx, lastChangeID)
+					if err != nil {
+						logger := logging.GetFromContext(ctx)
+						logger.Error("failed to get and publish road accidents", "err", err.Error())
+					}
+				}
+			case <-ctx.Done():
+				{
+					return
+				}
+			}
 		}
-	}
+	}()
+
+	return done, nil
 }
 
-func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error) {
+func (ts *roadAccidentSvc) getAndPublishRoadAccidents(ctx context.Context, lastChangeID string) (string, error) {
 	var err error
 	ctx, span := tracer.Start(ctx, "get-and-publish")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
@@ -67,6 +86,8 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 	if err != nil {
 		return lastChangeID, err
 	}
+
+	logger.Debug("received response", "body", string(resp))
 
 	tfvResp := &tfvResponse{}
 	err = json.Unmarshal(resp, tfvResp)
@@ -86,7 +107,6 @@ func (ts *ts) getAndPublishRoadAccidents(ctx context.Context, lastChangeID strin
 				logger.Info("ignoring deviation", "deviationtype", dev.IconId)
 			}
 		}
-
 	}
 
 	return tfvResp.Response.Result[0].Info.LastChangeID, nil

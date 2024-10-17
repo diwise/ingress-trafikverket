@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/diwise/context-broker/pkg/ngsild/client"
+	"github.com/diwise/ingress-trafikverket/internal/pkg/application/services"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
@@ -13,46 +14,64 @@ import (
 )
 
 type WeatherService interface {
-	Start(ctx context.Context) error
-	getAndPublishWeatherStations(ctx context.Context, lastChangeID string) (string, error)
-	getWeatherStationStatus(ctx context.Context, lastChangeID string) ([]byte, error)
-	publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error
+	services.Starter
 }
 
 func NewWeatherService(ctx context.Context, authKey, trafikverketURL string, ctxBrokerClient client.ContextBrokerClient) WeatherService {
-	return &ws{
+	return &weatherSvc{
 		authenticationKey: authKey,
 		trafikverketURL:   trafikverketURL,
 		ctxBrokerClient:   ctxBrokerClient,
-		stations:          map[string]string{},
+		interval:          30 * time.Second,
+		stations:          map[string]time.Time{},
 	}
 }
 
-type ws struct {
+type weatherSvc struct {
 	authenticationKey string
 	trafikverketURL   string
 	ctxBrokerClient   client.ContextBrokerClient
-	stations          map[string]string
+	interval          time.Duration
+	stations          map[string]time.Time
 }
 
-func (ws *ws) Start(ctx context.Context) error {
-	var err error
-	lastChangeID := "0"
+func (ws *weatherSvc) Start(ctx context.Context) (chan struct{}, error) {
 
-	for {
-		lastChangeID, err = ws.getAndPublishWeatherStations(ctx, lastChangeID)
-		if err != nil {
-			logging.GetFromContext(ctx).Error(
-				"failed to get and publish weather stations", "err", err.Error(),
-			)
+	done := make(chan struct{})
+
+	go func() {
+		var err error
+		lastChangeID := "0"
+
+		defer func() { done <- struct{}{} }()
+
+		tmr := time.NewTicker(ws.interval)
+
+		for {
+			select {
+			case <-tmr.C:
+				{
+					lastChangeID, err = ws.getAndPublishWeatherMeasurepoints(ctx, lastChangeID)
+					if err != nil {
+						logging.GetFromContext(ctx).Error(
+							"failed to get and publish weather stations", "err", err.Error(),
+						)
+					}
+				}
+			case <-ctx.Done():
+				{
+					return
+				}
+			}
 		}
-		time.Sleep(30 * time.Second)
-	}
+	}()
+
+	return done, nil
 }
 
-var tracer = otel.Tracer("tfv-weatherstation-client")
+var tracer = otel.Tracer("tfv-weathermeasurepoint-client")
 
-func (ws *ws) getAndPublishWeatherStations(ctx context.Context, lastChangeID string) (string, error) {
+func (ws *weatherSvc) getAndPublishWeatherMeasurepoints(ctx context.Context, lastChangeID string) (string, error) {
 	var err error
 
 	ctx, span := tracer.Start(ctx, "get-and-publish-status")
@@ -62,29 +81,31 @@ func (ws *ws) getAndPublishWeatherStations(ctx context.Context, lastChangeID str
 		span, logging.GetFromContext(ctx), ctx,
 	)
 
-	responseBody, err := ws.getWeatherStationStatus(ctx, lastChangeID)
+	responseBody, err := ws.getWeatherMeasurepointStatus(ctx, lastChangeID)
 	if err != nil {
 		return lastChangeID, err
 	}
 
-	answer := &weatherStationResponse{}
+	log.Debug("received response", "body", string(responseBody))
+
+	answer := &weatherMeasurepointResponse{}
 	err = json.Unmarshal(responseBody, answer)
 	if err != nil {
 		return lastChangeID, err
 	}
 
-	for _, weatherstation := range answer.Response.Result[0].WeatherStations {
-		if weatherstation.Active {
-			previousMeasureTime, ok := ws.stations[weatherstation.ID]
-			if ok && previousMeasureTime == weatherstation.Measurement.MeasureTime {
+	for _, measurepoint := range answer.Response.Result[0].WeatherMeasurepoints {
+		if !measurepoint.Deleted {
+			previousMeasureTime, ok := ws.stations[measurepoint.ID]
+			if ok && !measurepoint.ModifiedTime.After(previousMeasureTime) {
 				continue
 			}
 
-			ws.stations[weatherstation.ID] = weatherstation.Measurement.MeasureTime
+			ws.stations[measurepoint.ID] = measurepoint.ModifiedTime
 
-			err = ws.publishWeatherStationStatus(ctx, weatherstation)
+			err = ws.publishWeatherMeasurepointStatus(ctx, measurepoint)
 			if err != nil {
-				log.Error("unable to publish data for weatherstation", "weatherstation", weatherstation.ID, "err", err)
+				log.Error("unable to publish data for weathermeasurepoint", "measurepoint", measurepoint.ID, "err", err)
 			}
 		}
 	}
