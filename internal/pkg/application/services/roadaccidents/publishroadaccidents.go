@@ -3,52 +3,50 @@ package roadaccidents
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/diwise/context-broker/pkg/datamodels/fiware"
 	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
-	"github.com/diwise/ngsi-ld-golang/pkg/datamodels/fiware"
-	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 )
 
-func (ts *ts) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation, deleted bool) error {
+func (ts *roadAccidentSvc) publishRoadAccidentToContextBroker(ctx context.Context, dev tfvDeviation, deleted bool) error {
 	var err error
 	ctx, span := tracer.Start(ctx, "publish-to-broker")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	logger := logging.GetFromContext(ctx)
-
 	attributes, err := convertRoadAccidentToFiwareEntity(dev, deleted)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to create attribute for fiware entity")
+		err = fmt.Errorf("failed to create attribute for fiware entity: %s", err.Error())
 		return err
 	}
 
 	fragment, _ := entities.NewFragment(attributes...)
-	entityID := fiware.RoadAccidentIDPrefix + dev.Id
+	entityID := fiware.RoadAccidentIDPrefix + "se:trafikverket:api:deviation:" + dev.Id
 
 	headers := map[string][]string{"Content-Type": {"application/ld+json"}}
 
 	_, err = ts.ctxBroker.MergeEntity(ctx, entityID, fragment, headers)
 	if err != nil {
 		if !errors.Is(err, ngsierrors.ErrNotFound) {
-			logger.Error().Err(err).Msg("failed to merge entity")
+			err = fmt.Errorf("failed to merge entity: %s", err.Error())
 			return err
 		}
 
 		entity, err := entities.New(entityID, fiware.RoadAccidentTypeName, attributes...)
 		if err != nil {
-			logger.Error().Err(err).Msg("entities.New failed")
+			err = fmt.Errorf("entities.New failed: %s", err.Error())
 			return err
 		}
 
 		_, err = ts.ctxBroker.CreateEntity(ctx, entity, headers)
 		if err != nil {
-			logger.Error().Err(err).Msg("failed to post road accident to context broker")
+			err = fmt.Errorf("failed to post road accident to context broker: %s", err.Error())
 			return err
 		}
 	}
@@ -68,8 +66,8 @@ func convertRoadAccidentToFiwareEntity(ra tfvDeviation, deleted bool) ([]entitie
 		decorators.Status(status[deleted]),
 	)
 
-	if ra.Geometry.WGS84 != "" {
-		lat, lon := getLocationFromString(ra.Geometry.WGS84)
+	if ra.Geometry.Point.WGS84 != "" {
+		lat, lon := getLocationFromString(ra.Geometry.Point.WGS84)
 		attributes = append(attributes, decorators.Location(lat, lon))
 	}
 

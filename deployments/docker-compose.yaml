@@ -16,7 +16,7 @@ services:
 
 
   context-broker:
-    image: 'ghcr.io/diwise/context-broker:prod-9f3b4f349f72c95af4d91ff2ff838066f209b842'
+    image: 'ghcr.io/diwise/context-broker:prod-2ae284e9374c993d0a7a75ac628091468cba4dcc'
     restart: always
     depends_on:
       - orion-ld
@@ -30,7 +30,7 @@ services:
 
 
   orion-ld:
-    image: 'quay.io/fiware/orion-ld@sha256:a65adbface4d5467add735d01c7204951e3c474ef8fc901fbd3a2af285beafea'
+    image: 'quay.io/fiware/orion-ld@sha256:d1c2b50ba47046c2dd0bcd786970469e21d6998b08ad09b56da8fb17cd267ef6'
     restart: always
     command: [ '-experimental' ]
     environment:
@@ -43,7 +43,7 @@ services:
     depends_on:
       - mongodb
     ports:
-      - '8082:1026'
+      - '1026'
 
 
   mongodb:
@@ -72,7 +72,7 @@ services:
     depends_on:
         - mongodb
     ports:
-      - '8083:8081'
+      - '8082:8081'
 
 volumes:
   mongo-db: ~

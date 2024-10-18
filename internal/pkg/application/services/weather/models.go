@@ -1,39 +1,46 @@
 package weathersvc
 
+import "time"
+
+type osv struct {
+	Origin      string  `json:"Origin"`
+	SensorNames string  `json:"SensorNames"`
+	Value       float64 `json:"Value"`
+}
+
 type geometry struct {
 	Position string `json:"WGS84"`
 }
 
-type measurement struct {
-	Air         air    `json:"Air"`
-	Wind        wind   `json:"Wind"`
-	MeasureTime string `json:"MeasureTime"`
+type observation struct {
+	Air  air    `json:"Air"`
+	Wind []wind `json:"Wind"`
 }
 
 type air struct {
-	Temp             float64 `json:"Temp"`
-	RelativeHumidity float64 `json:"RelativeHumidity"`
+	Temperature      osv `json:"Temperature"`
+	RelativeHumidity osv `json:"RelativeHumidity"`
 }
 
 type wind struct {
-	Direction int     `json:"Direction"`
-	Force     float64 `json:"Force"`
-	ForceMax  float64 `json:"ForceMax"`
+	Direction osv `json:"Direction"`
+	Speed     osv `json:"Speed"`
 }
 
-type weatherStation struct {
-	ID          string      `json:"ID"`
-	Name        string      `json:"Name"`
-	Active      bool        `json:"Active"`
-	Geometry    geometry    `json:"Geometry"`
-	Measurement measurement `json:"Measurement"`
+type weatherMeasurepoint struct {
+	ID           string      `json:"Id"`
+	Name         string      `json:"Name"`
+	Deleted      bool        `json:"Deleted"`
+	Geometry     geometry    `json:"Geometry"`
+	Observation  observation `json:"Observation"`
+	ModifiedTime time.Time   `json:"ModifiedTime"`
 }
 
-type weatherStationResponse struct {
+type weatherMeasurepointResponse struct {
 	Response struct {
 		Result []struct {
-			WeatherStations []weatherStation `json:"WeatherStation"`
-			Info            struct {
+			WeatherMeasurepoints []weatherMeasurepoint `json:"WeatherMeasurepoint"`
+			Info                 struct {
 				LastChangeID string `json:"LASTCHANGEID"`
 			} `json:"INFO"`
 		} `json:"RESULT"`

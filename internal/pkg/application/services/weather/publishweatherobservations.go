@@ -3,57 +3,62 @@ package weathersvc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/diwise/context-broker/pkg/datamodels/fiware"
 	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
+	"github.com/diwise/context-broker/pkg/ngsild/types"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
 	"github.com/diwise/context-broker/pkg/ngsild/types/properties"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/tracing"
 )
 
-func (ws *ws) publishWeatherStationStatus(ctx context.Context, weatherstation weatherStation) error {
-	var err error
-
+func (ws *weatherSvc) publishWeatherMeasurepointStatus(ctx context.Context, measurepoint weatherMeasurepoint) (err error) {
 	_, span := tracer.Start(ctx, "publish-weatherobservations")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	attributes, err := convertWeatherStationToFiwareEntity(weatherstation)
+	var attributes []entities.EntityDecoratorFunc
+	attributes, err = convertWeatherMeasurepointToFiwareEntity(measurepoint)
+
 	if err != nil {
-		ws.log.Error().Err(err).Msgf("could not create attributes for weatherstation")
+		err = fmt.Errorf("could not create attributes for weathermeasurepoint: %s", err.Error())
+		return
 	}
 
 	fragment, _ := entities.NewFragment(attributes...)
-	entityID := fiware.WeatherObservedIDPrefix + "se:trafikverket:temp:" + weatherstation.ID
+	entityID := fiware.WeatherObservedIDPrefix + "se:trafikverket:api:weathermeasurepoint:" + measurepoint.ID
 
 	headers := map[string][]string{"Content-Type": {"application/ld+json"}}
 
 	_, err = ws.ctxBrokerClient.MergeEntity(ctx, entityID, fragment, headers)
 	if err != nil {
 		if !errors.Is(err, ngsierrors.ErrNotFound) {
-			ws.log.Error().Err(err).Msg("failed to merge entity")
-			return err
+			err = fmt.Errorf("failed to merge entity: %s", err.Error())
+			return
 		}
-		entity, err := entities.New(entityID, fiware.WeatherObservedTypeName, attributes...)
+
+		var entity types.Entity
+		entity, err = entities.New(entityID, fiware.WeatherObservedTypeName, attributes...)
 		if err != nil {
-			ws.log.Error().Err(err).Msg("entities.New failed")
-			return err
+			err = fmt.Errorf("entities.New failed: %s", err.Error())
+			return
 		}
 
 		_, err = ws.ctxBrokerClient.CreateEntity(ctx, entity, headers)
 		if err != nil {
-			ws.log.Error().Err(err).Msg("failed to post weather observed to context broker")
-			return err
+			err = fmt.Errorf("failed to post weather observed to context broker: %s", err.Error())
+			return
 		}
 	}
 
 	return nil
 }
 
-func convertWeatherStationToFiwareEntity(ws weatherStation) ([]entities.EntityDecoratorFunc, error) {
+func convertWeatherMeasurepointToFiwareEntity(ws weatherMeasurepoint) ([]entities.EntityDecoratorFunc, error) {
 	position := ws.Geometry.Position
 	position = position[7 : len(position)-1]
 
@@ -62,23 +67,22 @@ func convertWeatherStationToFiwareEntity(ws weatherStation) ([]entities.EntityDe
 	Latitude := strings.Split(position, " ")[1]
 	newLat, _ := strconv.ParseFloat(Latitude, 32)
 
-	t, _ := time.Parse(time.RFC3339, ws.Measurement.MeasureTime)
-	utcTime := t.UTC().Format(time.RFC3339)
+	utcTime := ws.ModifiedTime.Format(time.RFC3339)
 
 	attributes := append(
 		make([]entities.EntityDecoratorFunc, 0, 7),
 		decorators.Location(newLat, newLong),
 		decorators.Name(ws.Name),
-		number("temperature", ws.Measurement.Air.Temp, utcTime),
-		number("humidity", ws.Measurement.Air.RelativeHumidity/100.0, utcTime),
+		number("temperature", ws.Observation.Air.Temperature.Value, utcTime),
+		number("humidity", ws.Observation.Air.RelativeHumidity.Value/100.0, utcTime),
 		decorators.DateObserved(utcTime),
 	)
 
-	if ws.Measurement.Wind.Direction != 0 || ws.Measurement.Wind.Force > 0.01 {
+	if len(ws.Observation.Wind) > 0 && (ws.Observation.Wind[0].Direction.Value != 0 || ws.Observation.Wind[0].Speed.Value > 0.01) {
 		attributes = append(
 			attributes,
-			number("windDirection", float64(ws.Measurement.Wind.Direction), utcTime),
-			number("windSpeed", ws.Measurement.Wind.Force, utcTime),
+			number("windDirection", float64(ws.Observation.Wind[0].Direction.Value), utcTime),
+			number("windSpeed", ws.Observation.Wind[0].Speed.Value, utcTime),
 		)
 	}
 
