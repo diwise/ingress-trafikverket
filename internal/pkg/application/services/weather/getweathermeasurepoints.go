@@ -23,7 +23,7 @@ func (ws *weatherSvc) getWeatherMeasurepointStatus(ctx context.Context, lastChan
 	ctx, span := tracer.Start(ctx, "get-weathermeasurepoints")
 	defer func() { tracing.RecordAnyErrorAndEndSpan(err, span) }()
 
-	requestBody := fmt.Sprintf("<REQUEST><LOGIN authenticationkey=\"%s\" /><QUERY objecttype=\"WeatherMeasurepoint\" schemaversion=\"2.1\" changeid=\"%s\"><INCLUDE>Deleted</INCLUDE><INCLUDE>Id</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE><INCLUDE>Observation.Air.RelativeHumidity.Value</INCLUDE><INCLUDE>Observation.Air.Temperature.Value</INCLUDE><INCLUDE>Observation.Wind.Direction.Value</INCLUDE><INCLUDE>Observation.Sample</INCLUDE><INCLUDE>ModifiedTime</INCLUDE><INCLUDE>Name</INCLUDE><FILTER><WITHIN name=\"Geometry.SWEREF99TM\" shape=\"box\" value=\"527000 6879000, 652500 6950000\" /></FILTER></QUERY></REQUEST>", ws.authenticationKey, lastChangeID)
+	requestBody := fmt.Sprintf("<REQUEST><LOGIN authenticationkey=\"%s\" /><QUERY objecttype=\"WeatherMeasurepoint\" schemaversion=\"2.1\" changeid=\"%s\"><INCLUDE>Deleted</INCLUDE><INCLUDE>Id</INCLUDE><INCLUDE>Geometry.WGS84</INCLUDE><INCLUDE>Observation.Air.RelativeHumidity.Value</INCLUDE><INCLUDE>Observation.Air.Temperature.Value</INCLUDE><INCLUDE>Observation.Wind.Direction.Value</INCLUDE><INCLUDE>Observation.Sample</INCLUDE><INCLUDE>ModifiedTime</INCLUDE><INCLUDE>Name</INCLUDE><FILTER><WITHIN name=\"Geometry.SWEREF99TM\" shape=\"box\" value=\"%s\" /></FILTER></QUERY></REQUEST>", ws.authenticationKey, lastChangeID, ws.weatherBox)
 
 	apiReq, err := http.NewRequestWithContext(ctx, http.MethodPost, ws.trafikverketURL, bytes.NewBufferString(requestBody))
 	if err != nil {
