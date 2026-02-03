@@ -31,12 +31,13 @@ func main() {
 	authenticationKey := env.GetVariableOrDie(ctx, "TFV_API_AUTH_KEY", "API authentication key")
 	trafikverketURL := env.GetVariableOrDie(ctx, "TFV_API_URL", "API URL")
 	countyCode := env.GetVariableOrDefault(ctx, "TFV_COUNTY_CODE", "")
+	weatherBox := env.GetVariableOrDefault(ctx, "TFV_WEATHER_BOX", "527000 6879000, 652500 6950000")
 	contextBrokerURL := env.GetVariableOrDie(ctx, "CONTEXT_BROKER_URL", "context broker URL")
 	ctxBrokerClient := client.NewContextBrokerClient(contextBrokerURL, client.Debug("true"))
 
 	ctx, stopAllServices := context.WithCancel(ctx)
 
-	services := createServices(ctx, authenticationKey, trafikverketURL, countyCode, ctxBrokerClient)
+	services := createServices(ctx, authenticationKey, trafikverketURL, countyCode, weatherBox, ctxBrokerClient)
 
 	var wg sync.WaitGroup
 
@@ -83,14 +84,14 @@ func main() {
 	logger.Info("shutting down")
 }
 
-func createServices(ctx context.Context, authenticationKey, trafikverketURL, countyCode string, ctxBrokerClient client.ContextBrokerClient) []services.Starter {
+func createServices(ctx context.Context, authenticationKey, trafikverketURL, countyCode, weatherBox string, ctxBrokerClient client.ContextBrokerClient) []services.Starter {
 	services := make([]services.Starter, 0, 2)
 	logger := logging.GetFromContext(ctx)
 
 	if featureIsEnabled(logger, "weather") {
 		services = append(
 			services,
-			weathersvc.NewWeatherService(ctx, authenticationKey, trafikverketURL, ctxBrokerClient),
+			weathersvc.NewWeatherService(ctx, authenticationKey, trafikverketURL, weatherBox, ctxBrokerClient),
 		)
 	}
 

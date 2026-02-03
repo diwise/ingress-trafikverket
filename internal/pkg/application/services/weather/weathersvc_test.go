@@ -121,7 +121,7 @@ func setupMockWeatherService(t *testing.T, tfvStatusCode int, tfvBody string) (*
 		},
 	}
 
-	ws := NewWeatherService(context.Background(), "", tfvMock.URL(), ctxBroker)
+	ws := NewWeatherService(context.Background(), "", tfvMock.URL(), "", ctxBroker)
 
 	return is, ctxBroker, ws.(*weatherSvc), tfvMock
 }

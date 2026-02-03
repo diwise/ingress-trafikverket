@@ -17,10 +17,11 @@ type WeatherService interface {
 	services.Starter
 }
 
-func NewWeatherService(ctx context.Context, authKey, trafikverketURL string, ctxBrokerClient client.ContextBrokerClient) WeatherService {
+func NewWeatherService(ctx context.Context, authKey, trafikverketURL, weatherBox string, ctxBrokerClient client.ContextBrokerClient) WeatherService {
 	return &weatherSvc{
 		authenticationKey: authKey,
 		trafikverketURL:   trafikverketURL,
+		weatherBox:        weatherBox,
 		ctxBrokerClient:   ctxBrokerClient,
 		interval:          30 * time.Second,
 		stations:          map[string]time.Time{},
@@ -30,6 +31,7 @@ func NewWeatherService(ctx context.Context, authKey, trafikverketURL string, ctx
 type weatherSvc struct {
 	authenticationKey string
 	trafikverketURL   string
+	weatherBox        string
 	ctxBrokerClient   client.ContextBrokerClient
 	interval          time.Duration
 	stations          map[string]time.Time
