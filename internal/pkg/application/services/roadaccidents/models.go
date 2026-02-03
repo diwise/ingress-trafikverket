@@ -18,6 +18,7 @@ type tfvDeviation struct {
 	Geometry  tfvGeometry `json:"Geometry"`
 	StartTime string      `json:"StartTime"`
 	EndTime   string      `json:"EndTime"`
+	Suspended bool        `json:"Suspended"`
 	Message   string      `json:"Message"`
 }
 
