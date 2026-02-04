@@ -100,7 +100,7 @@ func (ws *weatherSvc) getAndPublishWeatherMeasurepoints(ctx context.Context, las
 	}
 
 	for _, measurepoint := range answer.Response.Result[0].WeatherMeasurepoints {
-		if !measurepoint.Deleted {
+		if !measurepoint.Deleted && measurepoint.Observation.Air != nil {
 			previousMeasureTime, ok := ws.stations[measurepoint.ID]
 			if ok && !measurepoint.ModifiedTime.After(previousMeasureTime) {
 				continue

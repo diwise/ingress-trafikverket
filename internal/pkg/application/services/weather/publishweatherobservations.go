@@ -73,12 +73,17 @@ func convertWeatherMeasurepointToFiwareEntity(ws weatherMeasurepoint) ([]entitie
 		make([]entities.EntityDecoratorFunc, 0, 7),
 		decorators.Location(newLat, newLong),
 		decorators.Name(ws.Name),
-		number("temperature", ws.Observation.Air.Temperature.Value, utcTime),
-		number("humidity", ws.Observation.Air.RelativeHumidity.Value/100.0, utcTime),
 		decorators.DateObserved(utcTime),
 	)
 
-	if len(ws.Observation.Wind) > 0 && (ws.Observation.Wind[0].Direction.Value != 0 || ws.Observation.Wind[0].Speed.Value > 0.01) {
+	if ws.Observation.Air != nil {
+		attributes = append(attributes,
+			number("temperature", ws.Observation.Air.Temperature.Value, utcTime),
+			number("humidity", ws.Observation.Air.RelativeHumidity.Value/100.0, utcTime),
+		)
+	}
+
+	if len(ws.Observation.Wind) > 0 && ws.Observation.Wind[0].Direction != nil && ws.Observation.Wind[0].Speed != nil {
 		attributes = append(
 			attributes,
 			number("windDirection", float64(ws.Observation.Wind[0].Direction.Value), utcTime),
