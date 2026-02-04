@@ -25,7 +25,7 @@ const serviceName string = "ingress-trafikverket"
 
 func main() {
 	serviceVersion := buildinfo.SourceVersion()
-	ctx, logger, cleanup := o11y.Init(context.Background(), serviceName, serviceVersion)
+	ctx, logger, cleanup := o11y.Init(context.Background(), serviceName, serviceVersion, "json")
 	defer cleanup()
 
 	authenticationKey := env.GetVariableOrDie(ctx, "TFV_API_AUTH_KEY", "API authentication key")
