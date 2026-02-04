@@ -13,7 +13,7 @@ type geometry struct {
 }
 
 type observation struct {
-	Air  air    `json:"Air"`
+	Air  *air   `json:"Air,omitempty"`
 	Wind []wind `json:"Wind"`
 }
 
@@ -23,8 +23,8 @@ type air struct {
 }
 
 type wind struct {
-	Direction osv `json:"Direction"`
-	Speed     osv `json:"Speed"`
+	Direction *osv `json:"Direction,omitempty"`
+	Speed     *osv `json:"Speed,omitempty"`
 }
 
 type weatherMeasurepoint struct {

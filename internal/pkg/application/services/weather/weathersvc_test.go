@@ -59,7 +59,7 @@ func TestPublishWeatherMeasurepointStatus(t *testing.T) {
 		Geometry:     geometry{Position: "POINT (17.345039367675781 62.276519775390625)"},
 		ModifiedTime: tm,
 		Observation: observation{
-			Air: air{
+			Air: &air{
 				Temperature:      osv{"", "", 12.0},
 				RelativeHumidity: osv{"", "", 86.5},
 			},
@@ -87,7 +87,7 @@ func TestPublishWeatherMeasurepointConvertsTimeProperly(t *testing.T) {
 		Geometry:     geometry{Position: "POINT (17.345039367675781 62.276519775390625)"},
 		ModifiedTime: tm.UTC(),
 		Observation: observation{
-			Air: air{
+			Air: &air{
 				Temperature:      osv{"", "", 12.0},
 				RelativeHumidity: osv{"", "", 92.0},
 			},
